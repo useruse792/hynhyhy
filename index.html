@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MiniChat</title>
+<title>captcha</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box}
@@ -100,6 +100,8 @@ input:focus{border-color:#5865f2}
 .admin-actions{display:flex;gap:6px;flex-wrap:wrap}
 @media(max-width:700px){#adminPanel{padding:14px}.admin-table{font-size:12px}.admin-table th,.admin-table td{padding:7px}}
 
+
+.admin-view{padding:20px;overflow:auto;background:#10131a}.admin-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.admin-head h2{margin:0}.admin-toolbar,.admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.admin-columns{display:grid;grid-template-columns:minmax(220px,1fr) minmax(300px,2fr);gap:14px;margin-top:14px}.admin-list{max-height:360px;overflow:auto}.admin-list .item{background:#20242e}.admin-view .admin-card{margin-bottom:14px}.admin-view .admin-actions input{flex:1;min-width:180px}@media(max-width:800px){.admin-view{padding:14px}.admin-columns{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -177,6 +179,31 @@ input:focus{border-color:#5865f2}
    </div>
    <div class="panel"><h3>🎯 Flotte ennemie</h3><div class="board" id="enemyBoard"></div></div>
   </div>
+ </section>
+
+ <section class="view admin-view" id="v-admin">
+  <div class="admin-head"><div><h2>👑 Administration</h2><div class="muted" id="adminStatus">Prêt.</div></div><button class="btn red" onclick="show('public')">Fermer</button></div>
+  <div class="admin-grid">
+   <div class="admin-card"><span class="admin-small">Salons</span><b id="admRooms">0</b></div>
+   <div class="admin-card"><span class="admin-small">Messages chargés</span><b id="admMessages">0</b></div>
+   <div class="admin-card"><span class="admin-small">Salons privés</span><b id="admPrivate">0</b></div>
+   <div class="admin-card"><span class="admin-small">Utilisateurs visibles</span><b id="admUsers">0</b></div>
+  </div>
+  <div class="admin-toolbar">
+   <button class="btn admin-purple" onclick="loadAdmin()">↻ Actualiser</button>
+   <button class="btn" onclick="adminCreateRoom()">＋ Créer un salon</button>
+   <button class="btn sec" onclick="adminRenameRoom()">✏️ Renommer</button>
+   <button class="btn sec" onclick="adminTogglePrivate()">🔒 Public/privé</button>
+   <button class="btn sec" onclick="adminOpenSelected()">🚪 Ouvrir</button>
+   <button class="btn red" onclick="adminPurgeRoom()">🧹 Vider le salon</button>
+   <button class="btn red" onclick="adminDeleteRoom()">🗑️ Supprimer le salon</button>
+  </div>
+  <div class="admin-columns">
+   <div class="admin-card"><h3>🚪 Salons</h3><div class="admin-list" id="adminRoomsList"></div></div>
+   <div class="admin-card"><h3>💬 Messages</h3><div class="admin-actions"><button class="btn sec" onclick="adminSearchMessages()">🔎 Rechercher</button><button class="btn sec" onclick="adminExport()">📥 Exporter</button><button class="btn red" onclick="adminDeleteMessageSelected()">🗑️ Supprimer sélection</button></div><div class="admin-list" id="adminMessagesList"></div></div>
+  </div>
+  <div class="admin-card"><h3>📢 Annonce dans le salon sélectionné</h3><div class="admin-actions"><input id="adminAnnouncement" maxlength="1000" placeholder="Texte de l'annonce..."><button class="btn admin-purple" onclick="adminAnnounce()">Envoyer</button></div></div>
+  <div class="admin-card"><h3>🧹 Modération utilisateur</h3><button class="btn red" onclick="adminDeleteUserMessages()">Supprimer les messages d'un utilisateur</button></div>
  </section>
 </main>
 </div>
