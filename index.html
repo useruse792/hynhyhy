@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>captcha</title>
+<title>MiniChat</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box}
@@ -188,7 +188,7 @@ const db = supabase.createClient(
   "sb_publishable__Ai5J691xHBSfqJ0EiHCeA_zR6Pl4jX"
 );
 const $ = id => document.getElementById(id);
-const S = { me: null, room: null, rooms: [], convs: [], conv: null, view: "public" };
+const S = { adminSelectedRoom:null, adminSelectedMessage:null, me: null, room: null, rooms: [], convs: [], conv: null, view: "public" };
 const SHIPS = [["Porte-avions", 5], ["Cuirassé", 4], ["Croiseur", 3], ["Sous-marin", 3], ["Destroyer", 2]];
 
 /* ---------- Utilitaires ---------- */
@@ -822,16 +822,10 @@ function changeAnon(cb) {
 }
 
 /* ---------- Administration ---------- */
-/*
- * Compte administrateur principal : shu
- * IMPORTANT : cette vérification protège l'interface.
- * Pour une vraie sécurité serveur, les policies/RPC Supabase doivent
- * également contrôler les opérations d'administration.
- */
 const ADMIN_USERNAME = "shu";
 
 function isAdmin(){
-  return !!S.me && String(S.me.username || "").toLowerCase() === ADMIN_USERNAME;
+  return !!S.me && String(S.me.username || "").trim().toLowerCase() === ADMIN_USERNAME;
 }
 
 function renderAdminAccess(){
@@ -840,171 +834,220 @@ function renderAdminAccess(){
 }
 
 async function openAdmin(){
-  if (!isAdmin()) return toast("Accès administrateur refusé.");
+  if(!isAdmin()) return toast("⛔ Accès réservé à shu.");
   show("admin");
-  $("adminPanel").classList.add("on");
   await loadAdmin();
+}
+
+function adminStatus(t){
+  const x=$("adminStatus");
+  if(x) x.textContent=t;
 }
 
 async function loadAdmin(){
-  if (!isAdmin()) return toast("Accès administrateur refusé.");
+  if(!isAdmin()) return toast("⛔ Accès refusé.");
+  adminStatus("⏳ Chargement...");
 
-  $("adminStatus").textContent = "Chargement du panneau admin...";
-
-  const [roomsR, msgR, gamesR] = await Promise.all([
-    db.from("rooms").select("*").order("created_at", {ascending:false}),
-    db.from("messages").select("id,username,content,room_code,created_at").order("created_at", {ascending:false}).limit(50),
-    db.from("battleship_games").select("id,code,status,player1_name,player2_name,winner_id").order("id", {ascending:false}).limit(50)
+  const [rr,mr]=await Promise.all([
+    db.from("rooms").select("*").order("created_at",{ascending:false}),
+    db.from("messages").select("id,username,content,room_code,created_at").order("created_at",{ascending:false}).limit(200)
   ]);
 
-  if (roomsR.error) console.error("Admin rooms:", roomsR.error);
-  if (msgR.error) console.error("Admin messages:", msgR.error);
-  if (gamesR.error) console.error("Admin games:", gamesR.error);
+  if(rr.error){ adminStatus("❌ Impossible de lire les salons : "+rr.error.message); return; }
+  if(mr.error){ adminStatus("❌ Impossible de lire les messages : "+mr.error.message); return; }
 
-  const rooms = roomsR.data || [];
-  const messages = msgR.data || [];
-  const games = gamesR.data || [];
+  const rooms=rr.data||[], msgs=mr.data||[];
+  S.rooms=rooms;
 
-  $("admRooms").textContent = rooms.length;
-  $("admMessages").textContent = messages.length + (msgR.error ? " ⚠️" : "");
-  $("admGames").textContent = games.length;
-
-  // Le projet actuel n'expose pas de table utilisateurs dans ce fichier.
-  // On compte les pseudos distincts visibles dans les messages.
-  const users = new Set(messages.map(x => x.username).filter(Boolean));
-  $("admUsers").textContent = users.size + (msgR.error ? " ⚠️" : "");
-
-  $("adminStatus").textContent =
-    msgR.error
-      ? "⚠️ Les données sont partiellement bloquées par les policies RLS. Les fonctions autorisées restent utilisables."
-      : "✅ Panneau administrateur chargé.";
+  $("admRooms").textContent=rooms.length;
+  $("admMessages").textContent=msgs.length;
+  $("admPrivate").textContent=rooms.filter(x=>x.is_private).length;
+  $("admUsers").textContent=new Set(msgs.map(x=>x.username).filter(Boolean)).size;
 
   renderAdminRooms(rooms);
-  renderAdminMessages(messages);
+  renderAdminMessages(msgs);
+  adminStatus("✅ Admin chargé — "+new Date().toLocaleTimeString());
 }
 
 function renderAdminRooms(rooms){
-  const box = $("adminRooms");
-  box.innerHTML = "";
-  if (!rooms.length) return box.append(el("div","empty","Aucun salon."));
-
-  const table = document.createElement("table");
-  table.className = "admin-table";
-  table.innerHTML = "<thead><tr><th>Salon</th><th>Code</th><th>Type</th><th>Actions</th></tr></thead>";
-  const tb = document.createElement("tbody");
+  const box=$("adminRoomsList"); box.innerHTML="";
+  if(!rooms.length){box.innerHTML='<div class="empty">Aucun salon.</div>';return;}
 
   rooms.forEach(r=>{
-    const tr=document.createElement("tr");
-    const tdName=el("td","", (r.is_private ? "🔒 " : "🌐 ") + r.name);
-    const tdCode=el("td","",r.code);
-    const tdType=el("td","",r.is_private ? "Privé" : "Public");
-    const tdAct=el("td","");
-    const actions=el("div","admin-actions");
-
-    const open=el("button","btn","Ouvrir");
-    open.type="button";
-    open.onclick=()=>selectRoom(r);
-
-    const del=el("button","btn admin-danger","Supprimer");
-    del.type="button";
-    del.onclick=()=>adminDeleteRoom(r);
-
-    actions.append(open,del);
-    tdAct.append(actions);
-    tr.append(tdName,tdCode,tdType,tdAct);
-    tb.append(tr);
-  });
-
-  table.append(tb);
-  box.append(table);
-}
-
-function renderAdminMessages(messages){
-  const box=$("adminMessagesList");
-  box.innerHTML="";
-  if(!messages.length) return box.append(el("div","empty","Aucun message visible."));
-
-  const table=document.createElement("table");
-  table.className="admin-table";
-  table.innerHTML="<thead><tr><th>Auteur</th><th>Salon</th><th>Message</th><th>Date</th><th>Action</th></tr></thead>";
-  const tb=document.createElement("tbody");
-
-  messages.forEach(m=>{
-    const tr=document.createElement("tr");
-    tr.append(
-      el("td","",m.username || "?"),
-      el("td","",m.room_code || "?"),
-      el("td","",m.content || ""),
-      el("td","",fmt(m.created_at))
+    const d=el("div","item"+(S.room?.code===r.code?" active":""));
+    d.style.marginBottom="6px";
+    d.style.cursor="pointer";
+    d.onclick=()=>{S.adminSelectedRoom=r; renderAdminRooms(rooms);};
+    d.append(
+      el("b","",(r.is_private?"🔒 ":"🌐 ")+r.name),
+      el("small","",`Code : ${r.code} • ${r.description||"Sans description"}`),
+      el("small","",S.adminSelectedRoom?.code===r.code?"✅ Sélectionné":"Cliquer pour sélectionner")
     );
-    const td=el("td","");
-    const b=el("button","btn admin-danger","🗑️");
-    b.type="button";
-    b.title="Supprimer ce message";
-    b.onclick=()=>adminDeleteMessage(m);
-    td.append(b);
-    tr.append(td);
-    tb.append(tr);
+    box.append(d);
   });
-
-  table.append(tb);
-  box.append(table);
 }
 
-async function adminDeleteMessage(m){
-  if(!isAdmin()) return;
-  if(!confirm("Supprimer définitivement ce message ?")) return;
+function renderAdminMessages(msgs){
+  const box=$("adminMessagesList"); box.innerHTML="";
+  if(!msgs.length){box.innerHTML='<div class="empty">Aucun message.</div>';return;}
 
-  const {data,error}=await db.from("messages").delete().eq("id",m.id).select();
-  if(error) return toast("Suppression refusée : " + error.message);
-  if(!data?.length) return toast("Suppression refusée par les permissions Supabase.");
-
-  toast("Message supprimé.");
-  $("msgBox")._sig=null;
-  await loadAdmin();
-  if(S.room?.code===m.room_code) await loadMessages();
+  msgs.forEach(m=>{
+    const d=el("div","item");
+    d.style.marginBottom="6px";
+    d.style.cursor="pointer";
+    d.onclick=()=>{S.adminSelectedMessage=m; renderAdminMessages(msgs);};
+    d.append(
+      el("b","",`${m.username||"?"} • ${m.room_code||"?"}`),
+      el("small","",m.content||""),
+      el("small","",fmt(m.created_at)+(S.adminSelectedMessage?.id===m.id?" • ✅ Sélectionné":""))
+    );
+    box.append(d);
+  });
 }
 
-async function adminDeleteRoom(r){
-  if(!isAdmin()) return;
-  if(r.code==="ANON") return toast("Le chat anonyme ne peut pas être supprimé ici.");
-  if(!confirm(`Supprimer le salon "${r.name}" ?`)) return;
+function selectedAdminRoom(){
+  return S.adminSelectedRoom || S.room || null;
+}
 
-  const {data,error}=await db.from("rooms").delete().eq("code",r.code).select();
-  if(error) return toast("Suppression refusée : " + error.message);
-  if(!data?.length) return toast("Suppression refusée par les permissions Supabase.");
-
-  if(S.room?.code===r.code){
-    S.room=null;
-    $("roomName").textContent="Aucun salon sélectionné";
-    $("roomCode").textContent="";
-    $("msgBox").innerHTML='<div class="empty">Salon supprimé.</div>';
+async function adminCreateRoom(){
+  if(!isAdmin())return;
+  const name=prompt("Nom du nouveau salon admin :");
+  if(!name?.trim())return;
+  let code;
+  for(let i=0;i<10;i++){
+    const c=genCode();
+    const {error}=await db.from("rooms").insert({code:c,name:name.trim(),description:"Salon créé par l'administrateur",is_private:false});
+    if(!error){code=c;break;}
+    if(error.code!=="23505")return toast("❌ "+error.message);
   }
+  if(!code)return toast("❌ Impossible de créer le salon.");
+  toast("✅ Salon créé : "+code);
+  await loadRooms(); await loadAdmin();
+}
 
-  toast("Salon supprimé.");
-  await loadRooms();
+async function adminRenameRoom(){
+  if(!isAdmin())return;
+  const r=selectedAdminRoom();
+  if(!r)return toast("Sélectionne un salon.");
+  const name=prompt("Nouveau nom :",r.name);
+  if(!name?.trim())return;
+  const {error}=await db.from("rooms").update({name:name.trim()}).eq("code",r.code);
+  if(error)return toast("❌ "+error.message);
+  toast("✅ Salon renommé.");
+  await loadRooms(); await loadAdmin();
+}
+
+async function adminTogglePrivate(){
+  if(!isAdmin())return;
+  const r=selectedAdminRoom();
+  if(!r)return toast("Sélectionne un salon.");
+  const {error}=await db.from("rooms").update({is_private:!r.is_private}).eq("code",r.code);
+  if(error)return toast("❌ "+error.message);
+  toast("✅ Salon "+(!r.is_private?"privé":"public")+".");
+  await loadRooms(); await loadAdmin();
+}
+
+async function adminDeleteRoom(){
+  if(!isAdmin())return;
+  const r=selectedAdminRoom();
+  if(!r||r.code==="ANON")return toast("Sélectionne un salon supprimable.");
+  if(!confirm(`Supprimer "${r.name}" et ses messages ?`))return;
+
+  const {error:me}=await db.from("messages").delete().eq("room_code",r.code);
+  if(me)return toast("❌ Messages : "+me.message);
+
+  const {error:re}=await db.from("rooms").delete().eq("code",r.code);
+  if(re)return toast("❌ Salon : "+re.message);
+
+  if(S.room?.code===r.code)S.room=null;
+  S.adminSelectedRoom=null;
+  toast("✅ Salon supprimé.");
+  await loadRooms(); await loadAdmin();
+}
+
+async function adminPurgeRoom(){
+  if(!isAdmin())return;
+  const r=selectedAdminRoom();
+  if(!r)return toast("Sélectionne un salon.");
+  if(!confirm(`Vider TOUS les messages de "${r.name}" ?`))return;
+  const {error}=await db.from("messages").delete().eq("room_code",r.code);
+  if(error)return toast("❌ "+error.message);
+  toast("✅ Salon vidé.");
+  await loadAdmin(); if(S.room?.code===r.code)await loadMessages();
+}
+
+async function adminDeleteUserMessages(){
+  if(!isAdmin())return;
+  const u=prompt("Pseudo dont tu veux supprimer les messages :");
+  if(!u?.trim())return;
+  if(!confirm(`Supprimer tous les messages de "${u.trim()}" ?`))return;
+  const {error}=await db.from("messages").delete().eq("username",u.trim());
+  if(error)return toast("❌ "+error.message);
+  toast("✅ Messages supprimés.");
   await loadAdmin();
 }
 
 async function adminAnnounce(){
-  if(!isAdmin()) return;
-  if(!S.room || S.room.code==="ANON") return toast("Sélectionne d'abord un salon normal.");
-  const input=$("adminAnnouncement");
-  const content=input.value.trim();
-  if(!content) return toast("Écris une annonce.");
-
+  if(!isAdmin())return;
+  const r=selectedAdminRoom();
+  if(!r||r.code==="ANON")return toast("Sélectionne un salon normal.");
+  const input=$("adminAnnouncement"), content=input.value.trim();
+  if(!content)return toast("Écris une annonce.");
   const {error}=await db.from("messages").insert({
-    username:"👑 ADMIN",
-    content:"📢 ANNONCE ADMIN : " + content,
-    room_code:S.room.code
+    username:"shu",
+    content:"📢 ANNONCE ADMIN : "+content,
+    room_code:r.code
   });
-
-  if(error) return toast("Annonce refusée : " + error.message);
+  if(error)return toast("❌ "+error.message);
   input.value="";
-  toast("Annonce envoyée !");
-  await loadMessages();
+  toast("✅ Annonce envoyée.");
+  await loadAdmin(); if(S.room?.code===r.code)await loadMessages();
 }
 
+async function adminSearchMessages(){
+  if(!isAdmin())return;
+  const q=prompt("Rechercher dans les messages :");
+  if(!q?.trim())return;
+  const {data,error}=await db.from("messages").select("id,username,content,room_code,created_at")
+    .ilike("content","%"+q.trim()+"%").order("created_at",{ascending:false}).limit(200);
+  if(error)return toast("❌ "+error.message);
+  renderAdminMessages(data||[]);
+  adminStatus(`🔎 ${data?.length||0} résultat(s) pour "${q}"`);
+}
+
+function adminExport(){
+  if(!isAdmin())return;
+  const rows=[...document.querySelectorAll("#adminMessagesList .item")].map(x=>x.innerText.replace(/\n/g," | "));
+  if(!rows.length)return toast("Aucun message à exporter.");
+  const blob=new Blob([rows.join("\n")],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="minichat-messages.txt";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("📥 Export terminé.");
+}
+
+function adminOpenSelected(){
+  if(!isAdmin())return;
+  const r=selectedAdminRoom();
+  if(!r)return toast("Sélectionne un salon.");
+  selectRoom(r);
+  toast("🚪 Salon ouvert.");
+}
+
+async function adminDeleteMessageSelected(){
+  if(!isAdmin())return;
+  const m=S.adminSelectedMessage;
+  if(!m)return toast("Sélectionne un message.");
+  if(!confirm("Supprimer ce message ?"))return;
+  const {error}=await db.from("messages").delete().eq("id",m.id);
+  if(error)return toast("❌ "+error.message);
+  S.adminSelectedMessage=null;
+  toast("🗑️ Message supprimé.");
+  await loadAdmin();
+  if(S.room?.code===m.room_code)await loadMessages();
+}
 
 /* ---------- Démarrage ---------- */
 S.me = ls("minichat_account", null);
