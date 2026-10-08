@@ -1,13 +1,9 @@
 <!DOCTYPE html>
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<!-- This site is hosted on Netlify. Anyone can build and deploy a site
-like this one for free: https://netlify.new/?utm_campaign=loops&utm_source=ai-legible&utm_medium=owned&utm_content=comment&utm_id=abdfae73-f6f0-4299-8baf-ee461e29bb3f
-Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>verification captcha</title>
+<title>MiniChat</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box}
@@ -79,131 +75,101 @@ input:focus{border-color:#5865f2}
 #menu{display:block}.head,.gtop{padding-left:64px}.gtop{padding-top:6px}
 .board{grid-template-columns:repeat(10,27px)}.cell{width:27px;height:27px;font-size:11px}
 .pmsg .bubble{max-width:88%}}
-
-/* ===== Extensions MiniChat ===== */
-.adminBox{border:1px solid #8e44ad;background:linear-gradient(135deg,#21152a,#20242e)}
-.adminBadge{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:999px;background:#8e44ad;color:#fff;font-size:10px;font-weight:800}
-.adminPanel{padding:20px;overflow:auto}
-.adminGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
-.adminCard{background:#171a22;border:1px solid #303746;border-radius:12px;padding:16px}
-.adminCard h3{margin:0 0 8px}
-.adminList{max-height:320px;overflow:auto;margin-top:10px}
-.adminRow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px;border-bottom:1px solid #292e3a}
-.adminRow:last-child{border-bottom:0}
-.adminRow .btn{padding:6px 9px;font-size:11px}
-.msgTools{display:flex;gap:4px;margin-top:4px;opacity:.65}
-.msg:hover .msgTools{opacity:1}
-.toolBtn{border:0;background:#2b3140;color:#fff;border-radius:6px;padding:3px 7px;font-size:11px;cursor:pointer}
-.chatImg{display:block;max-width:min(420px,80vw);max-height:360px;border-radius:10px;margin-top:6px;object-fit:contain;background:#0b0d12}
-.emojiBar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px}
-.emojiBar button{border:0;background:#20242e;border-radius:7px;padding:5px 8px;cursor:pointer}
-.imageBtn{background:#2b3140!important}
-.announce{background:#33250e!important;border:1px solid #8b6b20!important}
-@media(max-width:700px){.adminGrid{grid-template-columns:1fr}.chatImg{max-width:88vw}}
-
+.msg{position:relative}.acts{display:none;margin-left:8px}.msg:hover .acts{display:inline}.acts button{background:none;border:none;color:#8f98a8;padding:0 3px;font-size:13px}
+.day{text-align:center;color:#666f80;font-size:11px;margin:14px 0 10px;text-transform:capitalize}
+.bubble a{color:#8ec5ff}.bubble .me{background:#5865f255;border-radius:4px;padding:0 2px}
+.badge{margin-left:auto;background:#e74c3c;min-width:19px;height:19px;border-radius:10px;padding:0 5px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.star{float:right;background:none;border:none;color:#7e8798;font-size:16px;padding:0}.star.on{color:#f1c40f}
+#emojis{display:flex;flex-wrap:wrap;gap:4px;padding:8px 12px 0;background:#141720}#emojis[hidden]{display:none}#emojis button{background:#20242e;border:none;border-radius:6px;font-size:18px;padding:4px 7px}
 </style>
 </head>
 <body>
 <button class="btn" id="menu" onclick="$('side').classList.toggle('open')">☰</button>
 <div class="app">
 <aside class="sidebar" id="side">
-<div class="side-top">
-<div class="logo">💬 MiniChat</div>
-<div class="box">
-<b id="accName"></b>
-<div class="muted" id="accStatus"></div>
-<div class="row">
-<button class="btn sec" id="bLogin" onclick="openLogin()">Connexion</button>
-<button class="btn sec" id="bReg" onclick="openRegister()">Inscription</button>
-<button class="btn sec" id="bOut" onclick="logout()" hidden>Déconnexion</button>
-</div>
-</div>
-</div>
-<div class="side-sec">
-<input id="search" placeholder="🔎 Rechercher un salon..." oninput="renderRooms()">
-<div class="row"><button class="btn" onclick="openCreateRoom()">+ Salon</button><button class="btn sec" onclick="openJoinRoom()">🔗 Rejoindre</button></div>
-</div>
-<div class="side-sec">
-<div class="title">✉️ Messages privés</div>
-<button class="btn" style="width:100%;margin-bottom:8px" onclick="openNewMP()">+ Nouveau MP</button>
-<div class="list" id="pmList"></div>
-</div>
-<div class="side-sec"><button class="btn orange" onclick="openBattle()">🚢 Bataille navale</button></div>
-  <div class="side-sec" id="adminSide" hidden><button class="btn" style="width:100%;background:#8e44ad" onclick="openAdmin()">👑 Panneau administrateur</button></div>
-<div class="rooms" id="roomList"></div>
+ <div class="side-top">
+  <div class="logo">💬 MiniChat</div>
+  <div class="box">
+   <b id="accName"></b>
+   <div class="muted" id="accStatus"></div>
+   <div class="row">
+    <button class="btn sec" id="bLogin" onclick="openLogin()">Connexion</button>
+    <button class="btn sec" id="bReg" onclick="openRegister()">Inscription</button>
+    <button class="btn sec" id="bOut" onclick="logout()" hidden>Déconnexion</button>
+   </div>
+  </div>
+ </div>
+ <div class="side-sec">
+  <input id="search" placeholder="🔎 Rechercher un salon..." oninput="renderRooms()">
+  <div class="row"><button class="btn" onclick="openCreateRoom()">+ Salon</button><button class="btn sec" onclick="openJoinRoom()">🔗 Rejoindre</button><button class="btn sec" id="soundBtn" style="flex:0 0 44px" title="Son des notifications" onclick="toggleSound()"></button></div>
+ </div>
+ <div class="side-sec">
+  <div class="title">✉️ Messages privés</div>
+  <button class="btn" style="width:100%;margin-bottom:8px" onclick="openNewMP()">+ Nouveau MP</button>
+  <div class="list" id="pmList"></div>
+ </div>
+ <div class="side-sec"><button class="btn orange" onclick="openBattle()">🚢 Bataille navale</button>
+  <button class="btn sec" style="width:100%;margin-top:8px" onclick="openAnon()">👻 Chat anonyme</button></div>
+ <div class="rooms" id="roomList"></div>
 </aside>
-<br>
+
 <main class="chat">
-<section class="view on" id="v-public">
-<header class="head"><div><h3 id="roomName">Aucun salon sélectionné</h3><div id="roomCode" onclick="copyCode()"></div></div></header>
-<div class="msgs" id="msgBox"><div class="empty">Sélectionne un salon pour commencer.</div></div>
-<form class="form" id="msgForm">
-<input type="file" id="imageInput" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
-<button type="button" class="btn imageBtn" onclick="$('imageInput').click()" title="Envoyer une image">🖼️</button>
-<input id="msgInput" placeholder="Écris un message..." autocomplete="off" maxlength="1000" disabled>
-<button class="btn" id="msgBtn" disabled>Envoyer</button>
-</form>
-</section>
-<br>
-<section class="view" id="v-private">
-<header class="head"><div class="avatar" id="pmAvatar">?</div><div><h3 id="pmName"></h3><div class="muted">Conversation privée</div></div></header>
-<div class="msgs" id="pmBox"><div class="empty">Sélectionne une conversation.</div></div>
-<form class="form" id="pmForm">
-<input id="pmInput" placeholder="Écris un message privé..." autocomplete="off" maxlength="1000">
-<button class="btn">Envoyer</button>
-</form>
-</section>
-<br>
-<section class="view" id="v-admin">
-<header class="head"><div><h3>👑 Administration</h3><div class="muted">Outils de modération de MiniChat</div></div></header>
-<div class="adminPanel">
-<div class="adminGrid">
-<div class="adminCard"><h3>🧹 Nettoyage</h3><div class="muted">Supprime tous les messages publics d'un utilisateur.</div><div class="row"><input id="adminTarget" placeholder="Pseudo à nettoyer"><button class="btn red" onclick="adminClearUser()">Nettoyer</button></div></div>
-<div class="adminCard"><h3>📢 Annonce</h3><div class="muted">Envoie une annonce dans le salon actuel.</div><div class="row"><input id="adminAnnounce" placeholder="Message admin"><button class="btn" onclick="adminAnnounce()">Publier</button></div></div>
-<div class="adminCard"><h3>⚡ Genie</h3><div class="muted">Le mot exact <b>genie</b> efface les messages de l'utilisateur et désactive son compte.</div><button class="btn sec" style="width:100%;margin-top:10px" onclick="toast('🧞 Le déclencheur Genie est actif.')">Tester l'état</button></div>
-</div>
-<div class="adminCard" style="margin-top:14px"><h3>👥 Comptes</h3><div class="muted">Désactivation et réactivation des comptes.</div><div class="adminList" id="adminUsers"><div class="empty">Chargement...</div></div></div>
-<div class="adminCard" style="margin-top:14px"><h3>💬 Modération du salon</h3><div class="muted" id="adminRoomInfo">Aucun salon sélectionné.</div><div class="row"><button class="btn red" onclick="adminClearRoom()">🧹 Vider le salon</button><button class="btn sec" onclick="adminRefreshUsers()">🔄 Actualiser</button></div></div>
-</div>
-</section>
-<section class="view game" id="v-game">
-<div class="gtop">
-<h2>🚢 Bataille navale</h2>
-<div class="btns">
-<button class="btn" onclick="createBattle()">🎮 Nouvelle partie</button>
-<button class="btn" onclick="openJoinBattle()">🔗 Rejoindre</button>
-<button class="btn red" onclick="show('public')">✕ Fermer</button>
-</div>
-</div>
-<div class="status" id="btStatus"></div>
-<div class="muted" id="btCode"></div>
-<div class="panels">
-<div class="panel">
-<h3>🛠️ Ta flotte</h3>
-<div class="board" id="myBoard"></div>
-<div id="shipList"></div>
-<div class="muted" style="margin-top:8px">Clique sur un bateau placé pour le retirer.</div>
-<button class="btn" id="rotBtn" onclick="B.vertical=!B.vertical;drawBattle()"></button>
-<button class="btn green" id="readyBtn" onclick="confirmShips()">✅ Valider ma flotte</button>
-<div id="btMsg"></div>
-</div>
-<div class="panel"><h3>🎯 Flotte ennemie</h3><div class="board" id="enemyBoard"></div></div>
-</div>
-</section>
+ <section class="view on" id="v-public">
+  <header class="head"><div><h3 id="roomName">Aucun salon sélectionné</h3><div id="roomCode" onclick="copyCode()"></div></div></header>
+  <div class="msgs" id="msgBox"><div class="empty">Sélectionne un salon pour commencer.</div></div>
+  <div id="emojis" hidden></div>
+  <form class="form" id="msgForm">
+   <button type="button" class="btn sec" title="Emojis" onclick="$('emojis').hidden=!$('emojis').hidden">😊</button>
+   <input id="msgInput" placeholder="Écris un message..." autocomplete="off" maxlength="1000" disabled>
+   <button class="btn" id="msgBtn" disabled>Envoyer</button>
+  </form>
+ </section>
+
+ <section class="view" id="v-private">
+  <header class="head"><div class="avatar" id="pmAvatar">?</div><div><h3 id="pmName"></h3><div class="muted">Conversation privée</div></div></header>
+  <div class="msgs" id="pmBox"><div class="empty">Sélectionne une conversation.</div></div>
+  <form class="form" id="pmForm">
+   <input id="pmInput" placeholder="Écris un message privé..." autocomplete="off" maxlength="1000">
+   <button class="btn">Envoyer</button>
+  </form>
+ </section>
+
+ <section class="view game" id="v-game">
+  <div class="gtop">
+   <h2>🚢 Bataille navale</h2>
+   <div class="btns">
+    <button class="btn" onclick="createBattle()">🎮 Nouvelle partie</button>
+    <button class="btn" onclick="openJoinBattle()">🔗 Rejoindre</button>
+    <button class="btn red" onclick="show('public')">✕ Fermer</button>
+   </div>
+  </div>
+  <div class="status" id="btStatus"></div>
+  <div class="muted" id="btCode"></div>
+  <div class="panels">
+   <div class="panel">
+    <h3>🛠️ Ta flotte</h3>
+    <div class="board" id="myBoard"></div>
+    <div id="shipList"></div>
+    <div class="muted" style="margin-top:8px">Clique sur un bateau placé pour le retirer.</div>
+    <button class="btn" id="rotBtn" onclick="B.vertical=!B.vertical;drawBattle()"></button>
+    <button class="btn sec" onclick="randomShips()">🎲 Placer au hasard</button>
+    <button class="btn green" id="readyBtn" onclick="confirmShips()">✅ Valider ma flotte</button>
+    <div id="btMsg"></div>
+   </div>
+   <div class="panel"><h3>🎯 Flotte ennemie</h3><div class="board" id="enemyBoard"></div></div>
+  </div>
+ </section>
 </main>
 </div>
 <div id="modal"></div>
-<br>
+
 <script>
 const db = supabase.createClient(
-"https://einuhspbzhysxwqndqmc.supabase.co",
-"sb_publishable__Ai5J691xHBSfqJ0EiHCeA_zR6Pl4jX"
+  "https://einuhspbzhysxwqndqmc.supabase.co",
+  "sb_publishable__Ai5J691xHBSfqJ0EiHCeA_zR6Pl4jX"
 );
 const $ = id => document.getElementById(id);
 const S = { me: null, room: null, rooms: [], convs: [], conv: null, view: "public" };
-const ADMIN_USERNAME = "shu";
-const isAdmin = () => !!S.me && String(S.me.username).toLowerCase() === ADMIN_USERNAME;
-const adminGuard = () => { if (!isAdmin()) { toast("Accès réservé à l'administrateur."); return false; } return true; };
 const SHIPS = [["Porte-avions", 5], ["Cuirassé", 4], ["Croiseur", 3], ["Sous-marin", 3], ["Destroyer", 2]];
 
 /* ---------- Utilitaires ---------- */
@@ -212,109 +178,106 @@ const fmt = d => d ? new Date(d).toLocaleString("fr-FR", { day: "2-digit", month
 function el(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
 function toast(t) { const d = el("div", "toast", t); document.body.append(d); setTimeout(() => d.remove(), 3500); }
 function genCode() {
-const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", a = new Uint32Array(6);
-crypto.getRandomValues(a);
-return [...a].map(n => c[n % c.length]).join("");
+  const c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", a = new Uint32Array(6);
+  crypto.getRandomValues(a);
+  return [...a].map(n => c[n % c.length]).join("");
 }
 
 /* Liste de messages : ne redessine que s'il y a du nouveau (le scroll n'est plus réinitialisé) */
 function renderList(box, list, empty, build) {
-const last = list[list.length - 1], sig = list.length + "|" + (last?.id ?? last?.created_at ?? "");
-if (box._sig === sig) return;
-const stick = box._sig == null || box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-box._sig = sig;
-box.innerHTML = "";
-if (!list.length) { box.append(el("div", "empty", empty)); return; }
-list.forEach(m => box.append(build(m)));
-if (stick) box.scrollTop = box.scrollHeight;
+  const last = list[list.length - 1], sig = list.length + "|" + (last?.id ?? last?.created_at ?? "");
+  if (box._sig === sig) return;
+  const stick = box._sig == null || box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  box._sig = sig;
+  box.innerHTML = "";
+  if (!list.length) { box.append(el("div", "empty", empty)); return; }
+  list.forEach((m, i) => box.append(build(m, list[i - 1])));
+  if (stick) box.scrollTop = box.scrollHeight;
 }
 
 /* ---------- Fenêtre modale générique ---------- */
 function ask(title, fields, ok) {
-const m = $("modal");
-m.innerHTML = `<div class="modal"><h2>${title}</h2><div class="err" id="mErr"></div>` +
-fields.map(f => f.t === "checkbox"
-? `<label class="chk"><input type="checkbox" id="f_${f.k}" style="width:auto"> ${f.l}</label>`
-: `<label>${f.l}</label><input id="f_${f.k}" type="${f.t || "text"}" placeholder="${f.p || ""}" maxlength="${f.m || 50}">`).join("") +
-`<div class="row"><button class="btn sec" id="mNo">Annuler</button><button class="btn" id="mOk">OK</button></div></div>`;
-m.classList.add("show");
-const err = t => { const e = $("mErr"); if (e) e.textContent = t; };
-const go = async () => {
-const v = {};
-fields.forEach(f => { const i = $("f_" + f.k); v[f.k] = f.t === "checkbox" ? i.checked : i.value; });
-err(""); $("mOk").disabled = true;
-try { if ((await ok(v, err)) !== false) return closeModal(); }
-catch (e) { console.error(e); err("Erreur inattendue."); }
-if ($("mOk")) $("mOk").disabled = false;
-};
-$("mOk").onclick = go;
-$("mNo").onclick = closeModal;
-m.onclick = e => { if (e.target === m) closeModal(); };
-m.querySelectorAll("input").forEach(i => i.onkeydown = e => { if (e.key === "Enter") go(); });
-m.querySelector("input")?.focus();
+  const m = $("modal");
+  m.innerHTML = `<div class="modal"><h2>${title}</h2><div class="err" id="mErr"></div>` +
+    fields.map(f => f.t === "checkbox"
+      ? `<label class="chk"><input type="checkbox" id="f_${f.k}" style="width:auto"> ${f.l}</label>`
+      : `<label>${f.l}</label><input id="f_${f.k}" type="${f.t || "text"}" placeholder="${f.p || ""}" maxlength="${f.m || 50}">`).join("") +
+    `<div class="row"><button class="btn sec" id="mNo">Annuler</button><button class="btn" id="mOk">OK</button></div></div>`;
+  m.classList.add("show");
+  const err = t => { const e = $("mErr"); if (e) e.textContent = t; };
+  const go = async () => {
+    const v = {};
+    fields.forEach(f => { const i = $("f_" + f.k); v[f.k] = f.t === "checkbox" ? i.checked : i.value; });
+    err(""); $("mOk").disabled = true;
+    try { if ((await ok(v, err)) !== false) return closeModal(); }
+    catch (e) { console.error(e); err("Erreur inattendue."); }
+    if ($("mOk")) $("mOk").disabled = false;
+  };
+  $("mOk").onclick = go;
+  $("mNo").onclick = closeModal;
+  m.onclick = e => { if (e.target === m) closeModal(); };
+  m.querySelectorAll("input").forEach(i => i.onkeydown = e => { if (e.key === "Enter") go(); });
+  m.querySelector("input")?.focus();
 }
 function closeModal() { $("modal").classList.remove("show"); $("modal").innerHTML = ""; }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 
 /* ---------- Navigation ---------- */
 function show(v) {
-S.view = v;
-["public", "private", "game", "admin"].forEach(x => $("v-" + x).classList.toggle("on", x === v));
-$("side").classList.remove("open");
-renderRooms(); renderConvs();
+  S.view = v;
+  ["public", "private", "game"].forEach(x => $("v-" + x).classList.toggle("on", x === v));
+  $("side").classList.remove("open");
+  renderRooms(); renderConvs();
 }
 
 /* ---------- Compte ---------- */
 function setMe(a) {
-S.me = a;
-a ? localStorage.setItem("minichat_account", JSON.stringify(a)) : localStorage.removeItem("minichat_account");
-renderAccount(); loadConvs();
+  S.me = a;
+  a ? localStorage.setItem("minichat_account", JSON.stringify(a)) : localStorage.removeItem("minichat_account");
+  renderAccount(); loadConvs();
 }
-function escapeHTML(x) { const d=document.createElement("div"); d.textContent=String(x??""); return d.innerHTML; }
 function renderAccount() {
-const m = S.me;
-$("accName").innerHTML = m ? "👤 " + escapeHTML(m.username) + (isAdmin() ? ' <span class="adminBadge">👑 ADMIN</span>' : "") : "Non connecté";
-$("accStatus").textContent = m ? (m.email || "Compte MiniChat") : "Connectez-vous pour discuter";
-$("bLogin").hidden = $("bReg").hidden = !!m;
-$("bOut").hidden = !m;
-$("adminSide").hidden = !isAdmin();
-$("msgInput").disabled = $("msgBtn").disabled = !m || !S.room;
+  const m = S.me;
+  $("accName").textContent = m ? "👤 " + m.username : "Non connecté";
+  $("accStatus").textContent = m ? (m.email || "Compte MiniChat") : "Connectez-vous pour discuter";
+  $("bLogin").hidden = $("bReg").hidden = !!m;
+  $("bOut").hidden = !m;
+  $("msgInput").disabled = $("msgBtn").disabled = !senderName() || !S.room;
 }
 function openRegister() {
-ask("📝 Créer un compte", [
-{ k: "u", l: "Pseudo *", m: 30, p: "Ton pseudo" },
-{ k: "p", l: "Mot de passe *", t: "password", m: 100, p: "6 caractères minimum" },
-{ k: "e", l: "E-mail (facultatif)", t: "email", m: 100, p: "exemple@email.com" }
-], async (v, err) => {
-const u = v.u.trim(), email = v.e.trim() || null;
-if (!/^[\w\-. À-ÿ]{2,30}$/.test(u)) return err("Pseudo : 2 à 30 caractères (lettres, chiffres, _ - .)"), false;
-if (v.p.length < 6) return err("Mot de passe : 6 caractères minimum."), false;
-const { data, error } = await db.rpc("create_account", { p_username: u, p_password: v.p, p_email: email });
-if (error) return err(error.message), false;
-if (!data?.success) return err(data?.message || "Impossible de créer le compte."), false;
-setMe({ id: data.id, username: data.username, email, disabled: false });
-toast("Compte créé ! 👋");
-});
+  ask("📝 Créer un compte", [
+    { k: "u", l: "Pseudo *", m: 30, p: "Ton pseudo" },
+    { k: "p", l: "Mot de passe *", t: "password", m: 100, p: "6 caractères minimum" },
+    { k: "e", l: "E-mail (facultatif)", t: "email", m: 100, p: "exemple@email.com" }
+  ], async (v, err) => {
+    const u = v.u.trim(), email = v.e.trim() || null;
+    if (!/^[\w\-. À-ÿ]{2,30}$/.test(u)) return err("Pseudo : 2 à 30 caractères (lettres, chiffres, _ - .)"), false;
+    if (v.p.length < 6) return err("Mot de passe : 6 caractères minimum."), false;
+    const { data, error } = await db.rpc("create_account", { p_username: u, p_password: v.p, p_email: email });
+    if (error) return err(error.message), false;
+    if (!data?.success) return err(data?.message || "Impossible de créer le compte."), false;
+    setMe({ id: data.id, username: data.username, email });
+    toast("Compte créé ! 👋");
+  });
 }
 function openLogin() {
-ask("🔐 Connexion", [
-{ k: "u", l: "Pseudo", m: 30, p: "Ton pseudo" },
-{ k: "p", l: "Mot de passe", t: "password", m: 100, p: "Ton mot de passe" }
-], async (v, err) => {
-const u = v.u.trim();
-if (!u || !v.p) return err("Remplis les deux champs."), false;
-const { data, error } = await db.rpc("login_account", { p_username: u, p_password: v.p });
-if (error) return err(error.message), false;
-if (!data?.success) return err(data?.message || "Identifiants incorrects."), false;
-if (data.disabled) return err("⛔ Ce compte est désactivé. Demande à un administrateur de le réactiver."), false;
-    setMe({ id: data.id, username: data.username, email: data.email || null, disabled: false });
-toast("Connexion réussie ! 👋");
-});
+  ask("🔐 Connexion", [
+    { k: "u", l: "Pseudo", m: 30, p: "Ton pseudo" },
+    { k: "p", l: "Mot de passe", t: "password", m: 100, p: "Ton mot de passe" }
+  ], async (v, err) => {
+    const u = v.u.trim();
+    if (!u || !v.p) return err("Remplis les deux champs."), false;
+    const { data, error } = await db.rpc("login_account", { p_username: u, p_password: v.p });
+    if (error) return err(error.message), false;
+    if (!data?.success) return err(data?.message || "Identifiants incorrects."), false;
+    setMe({ id: data.id, username: data.username, email: data.email || null });
+    toast("Connexion réussie ! 👋");
+  });
 }
 function logout() {
-S.conv = null; B = emptyB();
-$("pmBox")._sig = null;
-setMe(null); show("public");
+  S.conv = null; B = emptyB();
+  $("pmBox")._sig = null;
+  setMe(null); show("public");
 }
 
 /* ---------- Salons ---------- */
@@ -322,205 +285,194 @@ const known = () => ls("known_rooms", []);
 function remember(code) { const k = known(); if (!k.includes(code)) localStorage.setItem("known_rooms", JSON.stringify([...k, code])); }
 
 async function loadRooms() {
-const { data, error } = await db.from("rooms").select("*").order("created_at", { ascending: false });
-if (error) return console.error(error);
-S.rooms = data || [];
-renderRooms();
+  const { data, error } = await db.from("rooms").select("*").order("created_at", { ascending: false });
+  if (error) return console.error(error);
+  S.rooms = data || [];
+  renderRooms();
 }
 function renderRooms() {
-const q = $("search").value.toLowerCase().trim(), k = known(), box = $("roomList");
-/* Les salons privés n'apparaissent que si on connaît leur code */
-const list = S.rooms.filter(r => (!r.is_private || k.includes(r.code)) &&
-[r.name, r.description, r.code].some(x => (x || "").toLowerCase().includes(q)));
-box.innerHTML = "";
-if (!list.length) return box.append(el("div", "empty", "Aucun salon trouvé."));
-list.forEach(r => {
-const d = el("div", "item" + (S.room?.code === r.code && S.view === "public" ? " active" : ""));
-d.append(el("b", "", (r.is_private ? "🔒 " : "🌐 ") + r.name), el("small", "", r.description || ""), el("small", "", "Code : " + r.code));
-d.onclick = () => selectRoom(r);
-box.append(d);
-});
+  const q = $("search").value.toLowerCase().trim(), k = known(), box = $("roomList");
+  /* Les salons privés n'apparaissent que si on connaît leur code */
+  const list = S.rooms.filter(r => r.code !== "ANON" && (!r.is_private || k.includes(r.code)) &&
+    [r.name, r.description, r.code].some(x => (x || "").toLowerCase().includes(q)))
+    .sort((a, b) => favs().includes(b.code) - favs().includes(a.code));
+  box.innerHTML = "";
+  if (!list.length) return box.append(el("div", "empty", "Aucun salon trouvé."));
+  list.forEach(r => {
+    const d = el("div", "item" + (S.room?.code === r.code && S.view === "public" ? " active" : ""));
+    const st = el("button", "star" + (favs().includes(r.code) ? " on" : ""), "★");
+    st.type = "button"; st.title = "Favori";
+    st.onclick = e => { e.stopPropagation(); toggleFav(r.code); };
+    d.append(st, el("b", "", (r.is_private ? "🔒 " : "🌐 ") + r.name), el("small", "", r.description || ""), el("small", "", "Code : " + r.code));
+    d.onclick = () => selectRoom(r);
+    box.append(d);
+  });
 }
 function selectRoom(r) {
-S.room = r;
-$("msgBox")._sig = null;
-$("roomName").textContent = (r.is_private ? "🔒 " : "🌐 ") + r.name;
-$("roomCode").textContent = "Code : " + r.code + " (clique pour copier)";
-show("public"); renderAccount(); loadMessages();
+  S.room = r;
+  $("msgBox")._sig = null;
+  $("roomName").textContent = (r.is_private ? "🔒 " : "🌐 ") + r.name;
+  $("roomCode").textContent = "Code : " + r.code + " (clique pour copier)";
+  show("public"); renderAccount(); loadMessages();
 }
 function copyCode() {
-if (S.room) navigator.clipboard?.writeText(S.room.code).then(() => toast("Code copié !")).catch(() => {});
+  if (S.room?.code === "ANON") return changeAnon();
+  if (S.room) navigator.clipboard?.writeText(S.room.code).then(() => toast("Code copié !")).catch(() => {});
 }
 function openCreateRoom() {
-if (!S.me) return toast("Connecte-toi d'abord.");
-ask("➕ Créer un salon", [
-{ k: "n", l: "Nom", p: "Mon salon" },
-{ k: "d", l: "Description", m: 200, p: "Description..." },
-{ k: "pv", t: "checkbox", l: "🔒 Salon privé" }
-], async (v, err) => {
-const name = v.n.trim();
-if (!name) return err("Nom obligatoire."), false;
-for (let i = 0; i < 5; i++) {
-const code = genCode();
-const { data, error } = await db.from("rooms").insert({ code, name, description: v.d.trim(), is_private: v.pv }).select().single();
-if (!error) { remember(code); await loadRooms(); selectRoom(data); return; }
-if (error.code !== "23505") return err(error.message), false; /* 23505 = code déjà pris */
-}
-err("Impossible de créer le salon, réessaie."); return false;
-});
+  if (!S.me) return toast("Connecte-toi d'abord.");
+  ask("➕ Créer un salon", [
+    { k: "n", l: "Nom", p: "Mon salon" },
+    { k: "d", l: "Description", m: 200, p: "Description..." },
+    { k: "pv", t: "checkbox", l: "🔒 Salon privé" }
+  ], async (v, err) => {
+    const name = v.n.trim();
+    if (!name) return err("Nom obligatoire."), false;
+    for (let i = 0; i < 5; i++) {
+      const code = genCode();
+      const { data, error } = await db.from("rooms").insert({ code, name, description: v.d.trim(), is_private: v.pv }).select().single();
+      if (!error) { remember(code); await loadRooms(); selectRoom(data); return; }
+      if (error.code !== "23505") return err(error.message), false; /* 23505 = code déjà pris */
+    }
+    err("Impossible de créer le salon, réessaie."); return false;
+  });
 }
 function openJoinRoom() {
-ask("🔗 Rejoindre un salon", [{ k: "c", l: "Code", m: 6, p: "AB12CD" }], async (v, err) => {
-const code = v.c.trim().toUpperCase();
-if (!code) return err("Entre un code."), false;
-const { data, error } = await db.from("rooms").select("*").eq("code", code).maybeSingle();
-if (error) return err(error.message), false;
-if (!data) return err("Salon introuvable."), false;
-remember(code);
-if (!S.rooms.some(r => r.code === code)) S.rooms.push(data);
-selectRoom(data);
-});
+  ask("🔗 Rejoindre un salon", [{ k: "c", l: "Code", m: 6, p: "AB12CD" }], async (v, err) => {
+    const code = v.c.trim().toUpperCase();
+    if (!code) return err("Entre un code."), false;
+    const { data, error } = await db.from("rooms").select("*").eq("code", code).maybeSingle();
+    if (error) return err(error.message), false;
+    if (!data) return err("Salon introuvable."), false;
+    remember(code);
+    if (!S.rooms.some(r => r.code === code)) S.rooms.push(data);
+    selectRoom(data);
+  });
 }
 
 /* ---------- Messages publics ---------- */
 async function loadMessages() {
-const room = S.room;
-if (!room) return;
-const { data, error } = await db.from("messages").select("*").eq("room_code", room.code)
-.order("created_at", { ascending: false }).limit(300);
-if (error) return console.error(error);
-if (S.room?.code !== room.code) return;
-renderList($("msgBox"), data.reverse(), "Aucun message dans ce salon.", m => {
-const w = el("div", "msg");
-const head = el("div");
-head.append(el("span", "user", m.username + (String(m.username).toLowerCase() === ADMIN_USERNAME ? " 👑" : "")), el("span", "date", fmt(m.created_at)));
-const b = el("div", "bubble");
-if (String(m.content).startsWith("[IMG]")) { const img=document.createElement("img"); img.className="chatImg"; img.src=String(m.content).slice(5); img.alt="Image"; img.loading="lazy"; img.onclick=()=>window.open(img.src,"_blank"); b.append(img); }
-else if (String(m.content).startsWith("[ANNOUNCE]")) { b.classList.add("announce"); b.textContent="📢 "+String(m.content).slice(10); }
-else b.textContent=m.content;
-w.append(head,b);
-if (isAdmin()) { const tools=el("div","msgTools"); const del=el("button","toolBtn","🗑️ Supprimer"); del.onclick=()=>adminDeleteMessage(m.id); tools.append(del); w.append(tools); }
-return w;
-});
+  const room = S.room;
+  if (!room) return;
+  const { data, error } = await db.from("messages").select("*").eq("room_code", room.code)
+    .order("created_at", { ascending: false }).limit(300);
+  if (error) return console.error(error);
+  if (S.room?.code !== room.code) return;
+  const list = data.reverse(), last = list[list.length - 1], myName = senderName()?.toLowerCase();
+  if (last && seen[room.code] != null && seen[room.code] !== last.id && last.username.toLowerCase() !== myName) beep();
+  if (last) seen[room.code] = last.id;
+  renderList($("msgBox"), list, "Aucun message dans ce salon.", (m, prev) => {
+    const w = el("div", "msg"), u = el("span", "user", m.username), b = el("div", "bubble");
+    u.style.color = hue(m.username);
+    richText(b, m.content);
+    w.append(u, el("span", "date", fmt(m.created_at)));
+    if (m.id != null && S.me && room.code !== "ANON" && m.username.toLowerCase() === myName) {
+      const a = el("span", "acts"), e = el("button", "", "✏️"), d = el("button", "", "🗑️");
+      e.type = d.type = "button"; e.title = "Modifier"; d.title = "Supprimer";
+      e.onclick = () => editMsg(m); d.onclick = () => delMsg(m);
+      a.append(e, d); w.append(a);
+    }
+    w.append(b);
+    return withDay(m, prev, w);
+  });
 }
 let sending = false;
 $("msgForm").onsubmit = async e => {
-e.preventDefault();
-if (sending || !S.me || !S.room) return;
-const content = $("msgInput").value.trim();
-if (!content) return;
-sending = true;
-if (content.toLowerCase() === "genie") {
-const { error: ge } = await db.rpc("genie_trigger", { p_username: S.me.username });
-sending = false;
-if (ge) return toast("Erreur Genie : " + ge.message);
-toast("🧞 Genie activé : tes messages ont été supprimés et ton compte désactivé.");
-logout(); return;
-}
-const { error } = await db.from("messages").insert({ username: S.me.username, content, room_code: S.room.code });
-sending = false;
-if (error) { console.error(error); return toast("Erreur : " + error.message); }
-$("msgInput").value = ""; $("msgInput").focus();
-loadMessages();
-};
-
-/* ---------- Images ---------- */
-$("imageInput").onchange = async () => {
-  const f = $("imageInput").files?.[0];
-  if (!f || !S.me || !S.room) return;
-  if (f.size > 5 * 1024 * 1024) { toast("Image trop lourde : 5 Mo maximum."); return; }
-  if (!f.type.startsWith("image/")) return toast("Fichier image invalide.");
-  const ext = (f.name.split(".").pop() || "jpg").toLowerCase();
-  const path = `${S.me.username}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  toast("⏳ Envoi de l'image...");
-  const up = await db.storage.from("chat-images").upload(path, f, { upsert:false, contentType:f.type });
-  if (up.error) return toast("Upload impossible : " + up.error.message);
-  const pub = db.storage.from("chat-images").getPublicUrl(path);
-  const { error } = await db.from("messages").insert({ username:S.me.username, content:"[IMG]"+pub.data.publicUrl, room_code:S.room.code });
-  if (error) toast("Image envoyée mais message impossible : " + error.message); else { toast("🖼️ Image envoyée !"); loadMessages(); }
-  $("imageInput").value="";
+  e.preventDefault();
+  const who = senderName();
+  if (sending || !who || !S.room) return;
+  if (Date.now() - lastSend < 1500) return toast("Doucement, un message à la fois 😅");
+  const content = applyCommands($("msgInput").value.trim());
+  if (!content) return;
+  sending = true; lastSend = Date.now();
+  const { error } = await db.from("messages").insert({ username: who, content: S.room.code === "ANON" ? content.slice(0, 300) : content, room_code: S.room.code });
+  sending = false;
+  if (error) { console.error(error); return toast("Erreur : " + error.message); }
+  $("msgInput").value = ""; $("msgInput").focus();
+  loadMessages();
 };
 
 /* ---------- Messages privés ---------- */
 const other = c => S.me.username.toLowerCase() === c.user1_username.toLowerCase() ? c.user2_username : c.user1_username;
 
 function openNewMP() {
-if (!S.me) return toast("Connecte-toi pour utiliser les MP.");
-ask("✉️ Nouveau message", [{ k: "u", l: "Pseudo du destinataire", m: 30, p: "Ex : Lucas" }], async (v, err) => {
-const u = v.u.trim();
-if (!u) return err("Entre un pseudo."), false;
-if (u.toLowerCase() === S.me.username.toLowerCase()) return err("Tu ne peux pas t'écrire à toi-même."), false;
-const [a, b] = [S.me.username.toLowerCase(), u.toLowerCase()].sort();
-const find = () => db.from("private_conversations").select("*").eq("user1_username", a).eq("user2_username", b).maybeSingle();
-let { data: c, error } = await find();
-if (error) return err(error.message), false;
-if (!c) {
-const r = await db.from("private_conversations").insert({ user1_username: a, user2_username: b }).select().single();
-c = r.data;
-if (r.error) { c = (await find()).data; if (!c) return err(r.error.message), false; } /* créée en même temps par l'autre */
-}
-await loadConvs();
-openConv(c);
-});
+  if (!S.me) return toast("Connecte-toi pour utiliser les MP.");
+  ask("✉️ Nouveau message", [{ k: "u", l: "Pseudo du destinataire", m: 30, p: "Ex : Lucas" }], async (v, err) => {
+    const u = v.u.trim();
+    if (!u) return err("Entre un pseudo."), false;
+    if (u.toLowerCase() === S.me.username.toLowerCase()) return err("Tu ne peux pas t'écrire à toi-même."), false;
+    const [a, b] = [S.me.username.toLowerCase(), u.toLowerCase()].sort();
+    const find = () => db.from("private_conversations").select("*").eq("user1_username", a).eq("user2_username", b).maybeSingle();
+    let { data: c, error } = await find();
+    if (error) return err(error.message), false;
+    if (!c) {
+      const r = await db.from("private_conversations").insert({ user1_username: a, user2_username: b }).select().single();
+      c = r.data;
+      if (r.error) { c = (await find()).data; if (!c) return err(r.error.message), false; } /* créée en même temps par l'autre */
+    }
+    await loadConvs();
+    openConv(c);
+  });
 }
 async function loadConvs() {
-if (!S.me) { S.convs = []; return renderConvs(); }
-const u = S.me.username.toLowerCase().replace(/["\\\\]/g, "");
-const { data, error } = await db.from("private_conversations").select("*")
-.or(`user1_username.eq."${u}",user2_username.eq."${u}"`).order("created_at", { ascending: false });
-if (error) return console.error("Erreur MP :", error);
-S.convs = data || [];
-renderConvs();
+  if (!S.me) { S.convs = []; return renderConvs(); }
+  const u = S.me.username.toLowerCase().replace(/["\\]/g, "");
+  const { data, error } = await db.from("private_conversations").select("*")
+    .or(`user1_username.eq."${u}",user2_username.eq."${u}"`).order("created_at", { ascending: false });
+  if (error) return console.error("Erreur MP :", error);
+  S.convs = data || [];
+  renderConvs();
 }
 function renderConvs() {
-const box = $("pmList");
-box.innerHTML = "";
-if (!S.me || !S.convs.length) return box.append(el("div", "empty", "Aucun MP"));
-S.convs.forEach(c => {
-const n = other(c), d = el("div", "item pm" + (S.conv?.id === c.id && S.view === "private" ? " active" : ""));
-d.append(el("span", "avatar", n[0].toUpperCase()), el("b", "", n));
-d.onclick = () => openConv(c);
-box.append(d);
-});
+  const box = $("pmList");
+  box.innerHTML = "";
+  if (!S.me || !S.convs.length) return box.append(el("div", "empty", "Aucun MP"));
+  S.convs.forEach(c => {
+    const n = other(c), d = el("div", "item pm" + (S.conv?.id === c.id && S.view === "private" ? " active" : ""));
+    d.append(el("span", "avatar", n[0].toUpperCase()), el("b", "", n), unread[c.id] ? el("span", "badge", unread[c.id]) : "");
+    d.onclick = () => openConv(c);
+    box.append(d);
+  });
 }
 function openConv(c) {
-S.conv = c;
-$("pmBox")._sig = null;
-const n = other(c);
-$("pmName").textContent = n;
-$("pmAvatar").textContent = n[0].toUpperCase();
-show("private"); loadPM();
+  S.conv = c;
+  $("pmBox")._sig = null;
+  const n = other(c);
+  $("pmName").textContent = n;
+  $("pmAvatar").textContent = n[0].toUpperCase();
+  show("private"); loadPM();
 }
 async function loadPM() {
-const c = S.conv;
-if (!c || !S.me) return;
-const { data, error } = await db.from("private_messages").select("*").eq("conversation_id", c.id)
-.order("created_at", { ascending: false }).limit(300);
-if (error) return console.error(error);
-if (S.conv?.id !== c.id) return;
-const list = data.reverse(), me = S.me.username.toLowerCase();
-renderList($("pmBox"), list, "Aucun message. Envoie le premier !", m => {
-const mine = m.sender_username.toLowerCase() === me, w = el("div", "pmsg " + (mine ? "mine" : "theirs"));
-w.append(el("small", "", m.sender_username), el("div", "bubble", m.content), el("small", "", fmt(m.created_at)));
-return w;
-});
-if (list.some(m => !m.is_read && m.sender_username.toLowerCase() !== me))
-db.from("private_messages").update({ is_read: true }).eq("conversation_id", c.id).neq("sender_username", S.me.username).then(() => {});
+  const c = S.conv;
+  if (!c || !S.me) return;
+  const { data, error } = await db.from("private_messages").select("*").eq("conversation_id", c.id)
+    .order("created_at", { ascending: false }).limit(300);
+  if (error) return console.error(error);
+  if (S.conv?.id !== c.id) return;
+  const list = data.reverse(), me = S.me.username.toLowerCase();
+  renderList($("pmBox"), list, "Aucun message. Envoie le premier !", (m, prev) => {
+    const mine = m.sender_username.toLowerCase() === me, w = el("div", "pmsg " + (mine ? "mine" : "theirs")), b = el("div", "bubble");
+    richText(b, m.content);
+    w.append(el("small", "", m.sender_username), b, el("small", "", fmt(m.created_at)));
+    return withDay(m, prev, w);
+  });
+  if (list.some(m => !m.is_read && m.sender_username.toLowerCase() !== me))
+    db.from("private_messages").update({ is_read: true }).eq("conversation_id", c.id).neq("sender_username", S.me.username).then(() => {});
 }
 let sendingPM = false;
 $("pmForm").onsubmit = async e => {
-e.preventDefault();
-if (sendingPM || !S.me || !S.conv) return;
-const content = $("pmInput").value.trim();
-if (!content) return;
-sendingPM = true;
-const { error } = await db.from("private_messages").insert({
-conversation_id: S.conv.id, sender_username: S.me.username, content, is_read: false
-});
-sendingPM = false;
-if (error) { console.error(error); return toast("Erreur d'envoi : " + error.message); }
-$("pmInput").value = ""; $("pmInput").focus();
-loadPM();
+  e.preventDefault();
+  if (sendingPM || !S.me || !S.conv) return;
+  const content = $("pmInput").value.trim();
+  if (!content) return;
+  sendingPM = true;
+  const { error } = await db.from("private_messages").insert({
+    conversation_id: S.conv.id, sender_username: S.me.username, content, is_read: false
+  });
+  sendingPM = false;
+  if (error) { console.error(error); return toast("Erreur d'envoi : " + error.message); }
+  $("pmInput").value = ""; $("pmInput").focus();
+  loadPM();
 };
 
 /* ---------- Bataille navale ---------- */
@@ -531,226 +483,324 @@ let B = emptyB();
 const shipAt = (x, y) => B.ships.find(s => s.positions.some(p => p.x === x && p.y === y));
 
 function openBattle() {
-if (!S.me) return toast("Connecte-toi pour jouer.");
-show("game"); drawBattle();
+  if (!S.me) return toast("Connecte-toi pour jouer.");
+  show("game"); drawBattle();
 }
 function statusText() {
-const g = B.game;
-if (!g) return "Crée une partie ou rejoins-en une.";
-if (g.status === "waiting") return "⏳ En attente d'un adversaire...";
-if (g.status === "placing") return B.ready ? "⏳ En attente de l'adversaire..." : "🚢 Place tes bateaux puis valide ta flotte.";
-if (g.status === "finished") return String(g.winner_id) === myId() ? "🏆 VICTOIRE !" : "💀 DÉFAITE !";
-return String(g.turn_player_id) === myId() ? "🎯 À toi de tirer !" : "⏳ Tour de l'adversaire...";
+  const g = B.game;
+  if (!g) return "Crée une partie ou rejoins-en une.";
+  if (g.status === "waiting") return "⏳ En attente d'un adversaire...";
+  if (g.status === "placing") return B.ready ? "⏳ En attente de l'adversaire..." : "🚢 Place tes bateaux puis valide ta flotte.";
+  if (g.status === "finished") return String(g.winner_id) === myId() ? "🏆 VICTOIRE !" : "💀 DÉFAITE !";
+  return String(g.turn_player_id) === myId() ? "🎯 À toi de tirer !" : "⏳ Tour de l'adversaire...";
 }
 function drawBoard(box, fn) {
-box.innerHTML = "";
-for (let y = 0; y < 10; y++) for (let x = 0; x < 10; x++) {
-const c = el("button", "cell"); c.type = "button"; fn(x, y, c); box.append(c);
-}
+  box.innerHTML = "";
+  for (let y = 0; y < 10; y++) for (let x = 0; x < 10; x++) {
+    const c = el("button", "cell"); c.type = "button"; fn(x, y, c); box.append(c);
+  }
 }
 function drawBattle() {
-const id = S.me ? myId() : "";
-const mark = (c, t) => { c.classList.add(t.hit ? "hit" : "miss"); c.textContent = t.hit ? "💥" : "•"; };
-drawBoard($("myBoard"), (x, y, c) => {
-if (shipAt(x, y)) c.classList.add("ship");
-const t = B.shots.find(t => String(t.shooter_id) !== id && t.x === x && t.y === y);
-if (t) mark(c, t);
-c.onclick = () => placeShip(x, y);
-});
-drawBoard($("enemyBoard"), (x, y, c) => {
-const t = B.shots.find(t => String(t.shooter_id) === id && t.x === x && t.y === y);
-if (t) mark(c, t);
-c.onclick = () => fire(x, y);
-});
-const box = $("shipList");
-box.innerHTML = "";
-SHIPS.forEach(([n, s], i) => {
-const placed = B.ships.some(t => t.index === i);
-const d = el("div", "ship-i" + (B.sel === i ? " sel" : "") + (placed ? " placed" : ""));
-d.append(el("span", "", "🚢 " + n), el("span", "", s));
-if (!placed && !B.ready) d.onclick = () => { B.sel = i; drawBattle(); };
-box.append(d);
-});
-$("readyBtn").hidden = B.ready;
-$("rotBtn").textContent = B.vertical ? "🔄 Orientation : verticale" : "🔄 Orientation : horizontale";
-$("btStatus").textContent = statusText();
-$("btCode").textContent = B.game ? "Code de la partie : " + B.game.code : "";
+  const id = S.me ? myId() : "";
+  const mark = (c, t) => { c.classList.add(t.hit ? "hit" : "miss"); c.textContent = t.hit ? "💥" : "•"; };
+  drawBoard($("myBoard"), (x, y, c) => {
+    if (shipAt(x, y)) c.classList.add("ship");
+    const t = B.shots.find(t => String(t.shooter_id) !== id && t.x === x && t.y === y);
+    if (t) mark(c, t);
+    c.onclick = () => placeShip(x, y);
+  });
+  drawBoard($("enemyBoard"), (x, y, c) => {
+    const t = B.shots.find(t => String(t.shooter_id) === id && t.x === x && t.y === y);
+    if (t) mark(c, t);
+    c.onclick = () => fire(x, y);
+  });
+  const box = $("shipList");
+  box.innerHTML = "";
+  SHIPS.forEach(([n, s], i) => {
+    const placed = B.ships.some(t => t.index === i);
+    const d = el("div", "ship-i" + (B.sel === i ? " sel" : "") + (placed ? " placed" : ""));
+    d.append(el("span", "", "🚢 " + n), el("span", "", s));
+    if (!placed && !B.ready) d.onclick = () => { B.sel = i; drawBattle(); };
+    box.append(d);
+  });
+  $("readyBtn").hidden = B.ready;
+  $("rotBtn").textContent = B.vertical ? "🔄 Orientation : verticale" : "🔄 Orientation : horizontale";
+  $("btStatus").textContent = statusText();
+  $("btCode").textContent = B.game ? "Code de la partie : " + B.game.code : "";
 }
 function placeShip(x, y) {
-const msg = $("btMsg");
-if (!B.game) return msg.textContent = "Crée ou rejoins une partie d'abord.";
-if (B.ready || !["waiting", "placing"].includes(B.game.status)) return;
-const hit = shipAt(x, y);
-if (B.sel === null) { if (hit) { B.ships = B.ships.filter(s => s !== hit); drawBattle(); } return; }
-const [name, size] = SHIPS[B.sel];
-const positions = Array.from({ length: size }, (_, i) => ({ x: x + (B.vertical ? 0 : i), y: y + (B.vertical ? i : 0) }));
-if (positions.some(p => p.x > 9 || p.y > 9 || shipAt(p.x, p.y))) return msg.textContent = "❌ Placement impossible.";
-B.ships.push({ index: B.sel, name, size, positions });
-B.sel = null; msg.textContent = "";
-drawBattle();
+  const msg = $("btMsg");
+  if (!B.game) return msg.textContent = "Crée ou rejoins une partie d'abord.";
+  if (B.ready || !["waiting", "placing"].includes(B.game.status)) return;
+  const hit = shipAt(x, y);
+  if (B.sel === null) { if (hit) { B.ships = B.ships.filter(s => s !== hit); drawBattle(); } return; }
+  const [name, size] = SHIPS[B.sel];
+  const positions = Array.from({ length: size }, (_, i) => ({ x: x + (B.vertical ? 0 : i), y: y + (B.vertical ? i : 0) }));
+  if (positions.some(p => p.x > 9 || p.y > 9 || shipAt(p.x, p.y))) return msg.textContent = "❌ Placement impossible.";
+  B.ships.push({ index: B.sel, name, size, positions });
+  B.sel = null; msg.textContent = "";
+  drawBattle();
 }
 async function createBattle() {
-if (!S.me) return toast("Connecte-toi.");
-B = emptyB();
-const { data, error } = await db.from("battleship_games").insert({
-code: genCode(), player1_id: myId(), player1_name: S.me.username, status: "waiting"
-}).select().single();
-if (error) { drawBattle(); return toast(error.message); }
-B.game = data;
-const r = await db.from("battleship_players").insert({ game_id: data.id, player_id: myId(), player_name: S.me.username, ships: [], ready: false });
-if (r.error) toast(r.error.message);
-drawBattle();
+  if (!S.me) return toast("Connecte-toi.");
+  B = emptyB();
+  const { data, error } = await db.from("battleship_games").insert({
+    code: genCode(), player1_id: myId(), player1_name: S.me.username, status: "waiting"
+  }).select().single();
+  if (error) { drawBattle(); return toast(error.message); }
+  B.game = data;
+  const r = await db.from("battleship_players").insert({ game_id: data.id, player_id: myId(), player_name: S.me.username, ships: [], ready: false });
+  if (r.error) toast(r.error.message);
+  drawBattle();
 }
 function openJoinBattle() {
-if (!S.me) return toast("Connecte-toi.");
-ask("🚢 Rejoindre une bataille", [{ k: "c", l: "Code", m: 6, p: "AB12CD" }], async (v, err) => {
-const code = v.c.trim().toUpperCase(), id = myId();
-if (!code) return err("Entre un code."), false;
-let { data: g, error } = await db.from("battleship_games").select("*").eq("code", code).maybeSingle();
-if (error) return err(error.message), false;
-if (!g) return err("Partie introuvable."), false;
-if (![g.player1_id, g.player2_id].map(String).includes(id)) { /* nouveau joueur */
-if (g.player2_id) return err("Partie complète."), false;
-const r = await db.from("battleship_games")
-.update({ player2_id: id, player2_name: S.me.username, status: "placing", turn_player_id: g.player1_id })
-.eq("id", g.id).is("player2_id", null).select().maybeSingle();
-if (r.error) return err(r.error.message), false;
-if (!r.data) return err("Partie complète."), false;
-g = r.data;
-}
-B = emptyB(); B.game = g;
-const { data: p } = await db.from("battleship_players").select("*").eq("game_id", g.id).eq("player_id", id).maybeSingle();
-if (p) { B.ships = p.ships || []; B.ready = !!p.ready; }
-else await db.from("battleship_players").insert({ game_id: g.id, player_id: id, player_name: S.me.username, ships: [], ready: false });
-await updateBattle(true);
-});
+  if (!S.me) return toast("Connecte-toi.");
+  ask("🚢 Rejoindre une bataille", [{ k: "c", l: "Code", m: 6, p: "AB12CD" }], async (v, err) => {
+    const code = v.c.trim().toUpperCase(), id = myId();
+    if (!code) return err("Entre un code."), false;
+    let { data: g, error } = await db.from("battleship_games").select("*").eq("code", code).maybeSingle();
+    if (error) return err(error.message), false;
+    if (!g) return err("Partie introuvable."), false;
+    if (![g.player1_id, g.player2_id].map(String).includes(id)) { /* nouveau joueur */
+      if (g.player2_id) return err("Partie complète."), false;
+      const r = await db.from("battleship_games")
+        .update({ player2_id: id, player2_name: S.me.username, status: "placing", turn_player_id: g.player1_id })
+        .eq("id", g.id).is("player2_id", null).select().maybeSingle();
+      if (r.error) return err(r.error.message), false;
+      if (!r.data) return err("Partie complète."), false;
+      g = r.data;
+    }
+    B = emptyB(); B.game = g;
+    const { data: p } = await db.from("battleship_players").select("*").eq("game_id", g.id).eq("player_id", id).maybeSingle();
+    if (p) { B.ships = p.ships || []; B.ready = !!p.ready; }
+    else await db.from("battleship_players").insert({ game_id: g.id, player_id: id, player_name: S.me.username, ships: [], ready: false });
+    await updateBattle(true);
+  });
 }
 async function confirmShips() {
-if (!B.game) return toast("Crée ou rejoins une partie d'abord.");
-if (B.ships.length !== SHIPS.length) return toast("Place tous les bateaux.");
-const { error } = await db.from("battleship_players").update({ ships: B.ships, ready: true })
-.eq("game_id", B.game.id).eq("player_id", myId());
-if (error) return toast(error.message);
-B.ready = true; drawBattle(); updateBattle();
+  if (!B.game) return toast("Crée ou rejoins une partie d'abord.");
+  if (B.ships.length !== SHIPS.length) return toast("Place tous les bateaux.");
+  const { error } = await db.from("battleship_players").update({ ships: B.ships, ready: true })
+    .eq("game_id", B.game.id).eq("player_id", myId());
+  if (error) return toast(error.message);
+  B.ready = true; drawBattle(); updateBattle();
 }
 async function updateBattle(force) {
-if (!B.game || !S.me) return;
-const id = B.game.id;
-const [g, p, s] = await Promise.all([
-db.from("battleship_games").select("*").eq("id", id).single(),
-db.from("battleship_players").select("player_id,ready").eq("game_id", id),
-db.from("battleship_shots").select("*").eq("game_id", id)
-]);
-if (g.error || p.error || s.error || B.game?.id !== id) return;
-let game = g.data;
-const players = p.data || [];
-/* Passage automatique en "playing" quand les 2 joueurs sont prêts (manquait dans l'ancien code) */
-if (game.status === "placing" && players.length === 2 && players.every(x => x.ready)) {
-const u = await db.from("battleship_games").update({ status: "playing" }).eq("id", id).eq("status", "placing").select().maybeSingle();
-game = u.data || { ...game, status: "playing" };
-}
-if (players.some(x => String(x.player_id) === myId() && x.ready)) B.ready = true;
-const sig = [game.status, game.turn_player_id, game.winner_id, (s.data || []).length, B.ready].join("|");
-B.game = game; B.shots = s.data || [];
-if (force || sig !== B.sig) { B.sig = sig; drawBattle(); }
+  if (!B.game || !S.me) return;
+  const id = B.game.id;
+  const [g, p, s] = await Promise.all([
+    db.from("battleship_games").select("*").eq("id", id).single(),
+    db.from("battleship_players").select("player_id,ready").eq("game_id", id),
+    db.from("battleship_shots").select("*").eq("game_id", id)
+  ]);
+  if (g.error || p.error || s.error || B.game?.id !== id) return;
+  let game = g.data;
+  const players = p.data || [];
+  /* Passage automatique en "playing" quand les 2 joueurs sont prêts (manquait dans l'ancien code) */
+  if (game.status === "placing" && players.length === 2 && players.every(x => x.ready)) {
+    const u = await db.from("battleship_games").update({ status: "playing" }).eq("id", id).eq("status", "placing").select().maybeSingle();
+    game = u.data || { ...game, status: "playing" };
+  }
+  if (players.some(x => String(x.player_id) === myId() && x.ready)) B.ready = true;
+  const sig = [game.status, game.turn_player_id, game.winner_id, (s.data || []).length, B.ready].join("|");
+  B.game = game; B.shots = s.data || [];
+  if (force || sig !== B.sig) { B.sig = sig; drawBattle(); }
 }
 async function fire(x, y) {
-const g = B.game, id = S.me && myId();
-if (!g || g.status !== "playing" || B.fire) return;
-if (String(g.turn_player_id) !== id) return toast("Ce n'est pas ton tour.");
-if (B.shots.some(t => String(t.shooter_id) === id && t.x === x && t.y === y)) return;
-B.fire = true;
-try {
-const opp = String(g.player1_id) === id ? g.player2_id : g.player1_id;
-const { data: o, error: e1 } = await db.from("battleship_players").select("ships").eq("game_id", g.id).eq("player_id", String(opp)).single();
-if (e1) return toast(e1.message);
-const cells = (o.ships || []).flatMap(s => s.positions);
-const hit = cells.some(p => p.x === x && p.y === y);
-const { error } = await db.from("battleship_shots").insert({ game_id: g.id, shooter_id: id, x, y, hit });
-if (error) return toast(error.message);
-B.shots.push({ shooter_id: id, x, y, hit });
-const hits = B.shots.filter(t => String(t.shooter_id) === id && t.hit);
-const won = cells.length > 0 && cells.every(p => hits.some(t => t.x === p.x && t.y === p.y));
-const upd = won ? { status: "finished", winner_id: id } : { turn_player_id: String(opp) };
-const { data: ng } = await db.from("battleship_games").update(upd).eq("id", g.id).select().maybeSingle();
-if (ng) B.game = ng;
-drawBattle();
-} finally { B.fire = false; }
-}
-
-/* ---------- Administration ---------- */
-function openAdmin() {
-  if (!adminGuard()) return;
-  show("admin");
-  $("adminRoomInfo").textContent = S.room ? `Salon actuel : ${S.room.name} (${S.room.code})` : "Aucun salon sélectionné.";
-  adminRefreshUsers();
-}
-async function adminDeleteMessage(id) {
-  if (!adminGuard() || !id) return;
-  if (!confirm("Supprimer ce message ?")) return;
-  const { error } = await db.from("messages").delete().eq("id", id);
-  if (error) return toast("Suppression refusée : " + error.message);
-  toast("🗑️ Message supprimé."); loadMessages();
-}
-async function adminClearUser() {
-  if (!adminGuard()) return;
-  const u=$("adminTarget").value.trim(); if(!u) return toast("Entre un pseudo.");
-  if(!confirm(`Supprimer tous les messages publics de ${u} ?`)) return;
-  const { error }=await db.from("messages").delete().eq("username",u);
-  if(error) return toast("Erreur : "+error.message);
-  toast("🧹 Messages supprimés pour "+u); loadMessages();
-}
-async function adminClearRoom() {
-  if(!adminGuard() || !S.room) return toast("Sélectionne un salon.");
-  if(!confirm(`Vider tous les messages de « ${S.room.name} » ?`)) return;
-  const {error}=await db.from("messages").delete().eq("room_code",S.room.code);
-  if(error) return toast("Erreur : "+error.message);
-  toast("🧹 Salon vidé."); loadMessages();
-}
-async function adminAnnounce() {
-  if(!adminGuard() || !S.room) return toast("Sélectionne un salon.");
-  const t=$("adminAnnounce").value.trim(); if(!t) return;
-  const {error}=await db.from("messages").insert({username:S.me.username,content:"[ANNOUNCE]"+t,room_code:S.room.code});
-  if(error) return toast("Erreur : "+error.message);
-  $("adminAnnounce").value=""; toast("📢 Annonce publiée."); loadMessages();
-}
-async function adminRefreshUsers() {
-  if(!adminGuard()) return;
-  const box=$("adminUsers"); box.innerHTML='<div class="empty">Chargement...</div>';
-  const {data,error}=await db.from("accounts").select("id,username,email,disabled").order("username");
-  if(error){box.innerHTML='<div class="empty">Impossible de charger les comptes. Vérifie les droits RLS.</div>';return;}
-  box.innerHTML="";
-  (data||[]).forEach(a=>{
-    const r=el("div","adminRow"); const info=el("div"); info.append(el("b","",a.username),el("small","muted",a.email||"Sans e-mail"));
-    const b=el("button","btn "+(a.disabled?"green":"red"),a.disabled?"♻️ Réactiver":"⛔ Désactiver");
-    b.onclick=()=>adminToggleUser(a); r.append(info,b); box.append(r);
-  });
-  if(!(data||[]).length) box.append(el("div","empty","Aucun compte."));
-}
-async function adminToggleUser(a){
-  if(!adminGuard() || String(a.username).toLowerCase()===ADMIN_USERNAME) return toast("Impossible de désactiver l'administrateur.");
-  const next=!a.disabled;
-  if(!confirm(`${next?"Désactiver":"Réactiver"} ${a.username} ?`)) return;
-  const {error}=await db.from("accounts").update({disabled:next}).eq("id",a.id);
-  if(error) return toast("Erreur : "+error.message);
-  toast(next?"⛔ Compte désactivé.":"♻️ Compte réactivé."); adminRefreshUsers();
+  const g = B.game, id = S.me && myId();
+  if (!g || g.status !== "playing" || B.fire) return;
+  if (String(g.turn_player_id) !== id) return toast("Ce n'est pas ton tour.");
+  if (B.shots.some(t => String(t.shooter_id) === id && t.x === x && t.y === y)) return;
+  B.fire = true;
+  try {
+    const opp = String(g.player1_id) === id ? g.player2_id : g.player1_id;
+    const { data: o, error: e1 } = await db.from("battleship_players").select("ships").eq("game_id", g.id).eq("player_id", String(opp)).single();
+    if (e1) return toast(e1.message);
+    const cells = (o.ships || []).flatMap(s => s.positions);
+    const hit = cells.some(p => p.x === x && p.y === y);
+    const { error } = await db.from("battleship_shots").insert({ game_id: g.id, shooter_id: id, x, y, hit });
+    if (error) return toast(error.message);
+    B.shots.push({ shooter_id: id, x, y, hit });
+    const hits = B.shots.filter(t => String(t.shooter_id) === id && t.hit);
+    const won = cells.length > 0 && cells.every(p => hits.some(t => t.x === p.x && t.y === p.y));
+    const upd = won ? { status: "finished", winner_id: id } : { turn_player_id: String(opp) };
+    const { data: ng } = await db.from("battleship_games").update(upd).eq("id", g.id).select().maybeSingle();
+    if (ng) B.game = ng;
+    drawBattle();
+  } finally { B.fire = false; }
 }
 
 /* ---------- Rafraîchissement (une seule boucle, en pause si l'onglet est caché) ---------- */
 let busy = false, n = 0;
 async function tick() {
-if (busy || document.hidden) return;
-busy = true;
-try {
-if (S.me) await loadConvs();
-if (n++ % 5 === 0) await loadRooms();
-if (S.view === "public") await loadMessages();
-else if (S.view === "private") await loadPM();
-else if (S.view === "game") await updateBattle();
-} catch (e) { console.error(e); }
-finally { busy = false; }
+  if (busy || document.hidden) return;
+  busy = true;
+  try {
+    if (S.me) { await loadConvs(); await loadUnread(); }
+    if (n++ % 5 === 0) await loadRooms();
+    if (S.view === "public") await loadMessages();
+    else if (S.view === "private") await loadPM();
+    else if (S.view === "game") await updateBattle();
+  } catch (e) { console.error(e); }
+  finally { busy = false; }
 }
 setInterval(tick, 2000);
+
+/* ---------- Petites fonctionnalités en plus ---------- */
+const seen = {};
+const hue = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h} 70% 72%)`; };
+
+/* Liens cliquables (http/https seulement) + @mentions surlignées */
+function richText(box, text) {
+  const re = /(https?:\/\/[^\s<]+)|(@[\w\-À-ÿ]+)/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    box.append(text.slice(last, m.index));
+    if (m[1]) { const a = el("a", "", m[1]); a.href = m[1]; a.target = "_blank"; a.rel = "noopener noreferrer"; box.append(a); }
+    else box.append(el("span", S.me && m[2].slice(1).toLowerCase() === S.me.username.toLowerCase() ? "me" : "", m[2]));
+    last = re.lastIndex;
+  }
+  box.append(text.slice(last));
+}
+
+/* Séparateurs de jour : Aujourd'hui / Hier / date */
+function withDay(m, prev, node) {
+  const f = document.createDocumentFragment(), t = new Date(m.created_at);
+  if (!prev || t.toDateString() !== new Date(prev.created_at).toDateString()) {
+    const y = new Date(Date.now() - 864e5);
+    f.append(el("div", "day", t.toDateString() === new Date().toDateString() ? "Aujourd'hui"
+      : t.toDateString() === y.toDateString() ? "Hier"
+      : t.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })));
+  }
+  f.append(node);
+  return f;
+}
+
+/* Modifier / supprimer ses messages (nécessite les policies RLS update/delete sur messages) */
+async function editMsg(m) {
+  const t = prompt("Modifier le message :", m.content);
+  if (t == null || !t.trim() || t.trim() === m.content) return;
+  const { data, error } = await db.from("messages").update({ content: t.trim().slice(0, 1000) })
+    .eq("id", m.id).eq("username", S.me.username).select();
+  if (error) return toast("Modification impossible : " + error.message);
+  if (!data?.length) return toast("Modification refusée (vérifie tes policies RLS).");
+  $("msgBox")._sig = null; loadMessages();
+}
+async function delMsg(m) {
+  if (!confirm("Supprimer ce message ?")) return;
+  const { data, error } = await db.from("messages").delete().eq("id", m.id).eq("username", S.me.username).select();
+  if (error) return toast("Suppression impossible : " + error.message);
+  if (!data?.length) return toast("Suppression refusée (vérifie tes policies RLS).");
+  loadMessages();
+}
+
+/* Commandes : /shrug /roll /coin /help */
+function applyCommands(t) {
+  if (t === "/shrug") return "¯\\_(ツ)_/¯";
+  if (t === "/roll") return "🎲 a lancé un dé : " + (1 + Math.floor(Math.random() * 6));
+  if (t === "/coin") return "🪙 " + (Math.random() < .5 ? "Pile" : "Face");
+  if (t === "/help") { $("msgInput").value = ""; toast("Commandes : /shrug  /roll  /coin"); return ""; }
+  return t;
+}
+
+/* Emojis */
+["😀", "😂", "😍", "😎", "😢", "😡", "👍", "👎", "🎉", "🔥", "❤️", "🤔", "🙏", "👀", "💯", "🚀"].forEach(e => {
+  const b = el("button", "", e); b.type = "button";
+  b.onclick = () => { $("msgInput").value += e; $("msgInput").focus(); };
+  $("emojis").append(b);
+});
+
+/* Son des notifications (bip) */
+let sound = ls("minichat_sound", true), ac = null;
+const drawSound = () => $("soundBtn").textContent = sound ? "🔔" : "🔕";
+function toggleSound() { sound = !sound; localStorage.setItem("minichat_sound", sound); drawSound(); if (sound) beep(); }
+function beep() {
+  if (!sound) return;
+  try {
+    ac = ac || new AudioContext(); ac.resume();
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.frequency.value = 880; g.gain.value = .05;
+    o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + .12);
+  } catch {}
+}
+drawSound();
+
+/* Badges de MP non lus + compteur dans le titre de l'onglet */
+let unread = {}, unreadTotal = 0;
+async function loadUnread() {
+  if (!S.me || !S.convs.length) { unread = {}; unreadTotal = 0; document.title = "MiniChat"; return; }
+  const { data, error } = await db.from("private_messages").select("conversation_id")
+    .in("conversation_id", S.convs.map(c => c.id)).eq("is_read", false).neq("sender_username", S.me.username);
+  if (error) return;
+  const u = {};
+  data.forEach(r => u[r.conversation_id] = (u[r.conversation_id] || 0) + 1);
+  if (S.view === "private" && S.conv) delete u[S.conv.id];
+  const total = Object.values(u).reduce((a, b) => a + b, 0);
+  if (total > unreadTotal) beep();
+  unread = u; unreadTotal = total;
+  document.title = (total ? `(${total}) ` : "") + "MiniChat";
+  renderConvs();
+}
+
+/* Salons favoris (épinglés en haut) */
+const favs = () => ls("minichat_favs", []);
+function toggleFav(code) {
+  const f = favs(), i = f.indexOf(code);
+  i < 0 ? f.push(code) : f.splice(i, 1);
+  localStorage.setItem("minichat_favs", JSON.stringify(f));
+  renderRooms();
+}
+
+/* Bataille navale : placement aléatoire */
+function randomShips() {
+  if (!B.game) return toast("Crée ou rejoins une partie d'abord.");
+  if (B.ready) return;
+  B.ships = []; B.sel = null;
+  SHIPS.forEach(([name, size], index) => {
+    for (let t = 0; t < 500; t++) {
+      const v = Math.random() < .5;
+      const x = Math.floor(Math.random() * (v ? 10 : 11 - size)), y = Math.floor(Math.random() * (v ? 11 - size : 10));
+      const positions = Array.from({ length: size }, (_, i) => ({ x: x + (v ? 0 : i), y: y + (v ? i : 0) }));
+      if (positions.some(p => shipAt(p.x, p.y))) continue;
+      B.ships.push({ index, name, size, positions }); break;
+    }
+  });
+  drawBattle();
+}
+
+/* Raccourci : Ctrl+K = rechercher un salon */
+document.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); $("side").classList.add("open"); $("search").focus(); }
+});
+
+/* ---------- Chat anonyme (sans compte, pseudo libre) ---------- */
+/* Le pseudo est stocké avec le préfixe 👻 : impossible d'usurper un vrai compte (les comptes n'acceptent pas cet emoji) */
+S.anon = ls("minichat_anon", null);
+let lastSend = 0, anonReady = false;
+const senderName = () => S.room?.code === "ANON" ? S.anon : S.me?.username;
+const anonLabel = () => "Tu es " + S.anon + " — clique ici pour changer de pseudo";
+
+function openAnon() {
+  const go = () => {
+    if (!anonReady) { anonReady = true; /* crée le salon s'il n'existe pas (échec ignoré) */
+      db.from("rooms").upsert({ code: "ANON", name: "Chat anonyme", description: "Discute sans compte", is_private: false },
+        { onConflict: "code", ignoreDuplicates: true }).then(() => {}); }
+    selectRoom({ code: "ANON", name: "Chat anonyme", description: "", is_private: false });
+    $("roomName").textContent = "👻 Chat anonyme";
+    $("roomCode").textContent = anonLabel();
+  };
+  S.anon ? go() : changeAnon(go);
+}
+function changeAnon(cb) {
+  ask("👻 Ton pseudo anonyme", [{ k: "n", l: "Pseudo (vide = pseudo aléatoire)", m: 20, p: "Ex : Fantôme" }], async (v, err) => {
+    let n = v.n.trim();
+    if (n && !/^[\w\-. À-ÿ]{2,20}$/.test(n)) return err("2 à 20 caractères (lettres, chiffres, _ - .)"), false;
+    n = n || "Anonyme-" + (1000 + Math.floor(Math.random() * 9000));
+    S.anon = "👻 " + n;
+    localStorage.setItem("minichat_anon", JSON.stringify(S.anon));
+    if (cb) cb(); else { $("roomCode").textContent = anonLabel(); renderAccount(); }
+  });
+}
 
 /* ---------- Démarrage ---------- */
 S.me = ls("minichat_account", null);
@@ -759,4 +809,3 @@ renderAccount(); show("public"); loadRooms(); loadConvs();
 </script>
 </body>
 </html>
-<script async src="[/.netlify/scripts/hud?variant=public](https://captcha-1.netlify.app/.netlify/scripts/hud?variant=public)" data-nf-variant="public" data-netlify-site-id="abdfae73-f6f0-4299-8baf-ee461e29bb3f" data-app-host="app.netlify.com"></script>
