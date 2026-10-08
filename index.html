@@ -328,71 +328,178 @@ function logout() {
 
 /* ---------- Salons ---------- */
 const known = () => ls("known_rooms", []);
-function remember(code) { const k = known(); if (!k.includes(code)) localStorage.setItem("known_rooms", JSON.stringify([...k, code])); }
-
-async function loadRooms() {
-  const { data, error } = await db.from("rooms").select("*").order("created_at", { ascending: false });
-  if (error) return console.error(error);
-  S.rooms = data || [];
-  renderRooms();
+function remember(code) {
+  const c = String(code || "").trim().toUpperCase();
+  if (!c) return;
+  const k = known();
+  if (!k.includes(c)) localStorage.setItem("known_rooms", JSON.stringify([...k, c]));
 }
+
+let roomsErrorShown = false;
+async function loadRooms(silent = false) {
+  const { data, error } = await db.from("rooms")
+    .select("id,code,name,description,is_private,created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Erreur rooms:", error);
+    if (!silent && !roomsErrorShown) {
+      roomsErrorShown = true;
+      toast("❌ Impossible de charger les salons : " + error.message);
+    }
+    return false;
+  }
+
+  roomsErrorShown = false;
+  S.rooms = Array.isArray(data) ? data : [];
+  renderRooms();
+  return true;
+}
+
 function renderRooms() {
-  const q = $("search").value.toLowerCase().trim(), k = known(), box = $("roomList");
-  /* Les salons privés n'apparaissent que si on connaît leur code */
-  const list = S.rooms.filter(r => r.code !== "ANON" && (!r.is_private || k.includes(r.code)) &&
-    [r.name, r.description, r.code].some(x => (x || "").toLowerCase().includes(q)))
-    .sort((a, b) => favs().includes(b.code) - favs().includes(a.code));
+  const search = $("search");
+  const box = $("roomList");
+  if (!box) return;
+
+  const q = (search?.value || "").toLowerCase().trim();
+  const k = known();
+  const favorites = favs();
+
+  const list = S.rooms
+    .filter(r => String(r.code || "").toUpperCase() !== "ANON")
+    .filter(r => !r.is_private || k.includes(String(r.code || "").toUpperCase()))
+    .filter(r => [r.name, r.description, r.code]
+      .some(x => String(x || "").toLowerCase().includes(q)))
+    .sort((a, b) => {
+      const fa = favorites.includes(String(a.code).toUpperCase()) ? 1 : 0;
+      const fb = favorites.includes(String(b.code).toUpperCase()) ? 1 : 0;
+      return fb - fa;
+    });
+
   box.innerHTML = "";
-  if (!list.length) return box.append(el("div", "empty", "Aucun salon trouvé."));
+  if (!list.length) {
+    box.append(el("div", "empty", S.rooms.length ? "Aucun salon trouvé." : "Aucun salon disponible."));
+    return;
+  }
+
   list.forEach(r => {
-    const d = el("div", "item" + (S.room?.code === r.code && S.view === "public" ? " active" : ""));
-    const st = el("button", "star" + (favs().includes(r.code) ? " on" : ""), "★");
-    st.type = "button"; st.title = "Favori";
-    st.onclick = e => { e.stopPropagation(); toggleFav(r.code); };
-    d.append(st, el("b", "", (r.is_private ? "🔒 " : "🌐 ") + r.name), el("small", "", r.description || ""), el("small", "", "Code : " + r.code));
-    d.onclick = () => selectRoom(r);
+    const code = String(r.code || "").toUpperCase();
+    const d = el("div", "item" + (S.room?.code === code && S.view === "public" ? " active" : ""));
+    const st = el("button", "star" + (favorites.includes(code) ? " on" : ""), "★");
+    st.type = "button";
+    st.title = favorites.includes(code) ? "Retirer des favoris" : "Ajouter aux favoris";
+    st.onclick = e => {
+      e.stopPropagation();
+      toggleFav(code);
+    };
+
+    d.append(
+      st,
+      el("b", "", (r.is_private ? "🔒 " : "🌐 ") + (r.name || "Salon sans nom")),
+      el("small", "", r.description || ""),
+      el("small", "", "Code : " + code)
+    );
+    d.onclick = () => selectRoom({ ...r, code });
     box.append(d);
   });
 }
-function selectRoom(r) {
-  S.room = r;
+
+async function selectRoom(r) {
+  if (!r?.code) return toast("❌ Salon invalide.");
+
+  const code = String(r.code).trim().toUpperCase();
+  S.room = { ...r, code };
   $("msgBox")._sig = null;
-  $("roomName").textContent = (r.is_private ? "🔒 " : "🌐 ") + r.name;
-  $("roomCode").textContent = "Code : " + r.code + " (clique pour copier)";
-  show("public"); renderAccount(); loadMessages();
+  $("roomName").textContent = (r.is_private ? "🔒 " : "🌐 ") + (r.name || "Salon");
+  $("roomCode").textContent = "Code : " + code + " (clique pour copier)";
+  renderRooms();
+  show("public");
+  renderAccount();
+  await loadMessages();
 }
+
 function copyCode() {
   if (S.room?.code === "ANON") return changeAnon();
-  if (S.room) navigator.clipboard?.writeText(S.room.code).then(() => toast("Code copié !")).catch(() => {});
+  if (!S.room?.code) return;
+  navigator.clipboard?.writeText(S.room.code)
+    .then(() => toast("✅ Code copié !"))
+    .catch(() => toast("Code : " + S.room.code));
 }
+
 function openCreateRoom() {
-  if (!S.me) return toast("Connecte-toi d'abord.");
+  if (!S.me) return toast("🔐 Connecte-toi d'abord pour créer un salon.");
+
   ask("➕ Créer un salon", [
-    { k: "n", l: "Nom", p: "Mon salon" },
+    { k: "n", l: "Nom", p: "Mon salon", m: 60 },
     { k: "d", l: "Description", m: 200, p: "Description..." },
     { k: "pv", t: "checkbox", l: "🔒 Salon privé" }
   ], async (v, err) => {
-    const name = v.n.trim();
+    const name = String(v.n || "").trim();
+    const description = String(v.d || "").trim();
+
     if (!name) return err("Nom obligatoire."), false;
-    for (let i = 0; i < 5; i++) {
+    if (name.length < 2) return err("Le nom doit faire au moins 2 caractères."), false;
+
+    for (let i = 0; i < 8; i++) {
       const code = genCode();
-      const { data, error } = await db.from("rooms").insert({ code, name, description: v.d.trim(), is_private: v.pv }).select().single();
-      if (!error) { remember(code); await loadRooms(); selectRoom(data); return; }
-      if (error.code !== "23505") return err(error.message), false; /* 23505 = code déjà pris */
+      const payload = {
+        code,
+        name,
+        description,
+        is_private: !!v.pv
+      };
+
+      const { data, error } = await db.from("rooms")
+        .insert(payload)
+        .select("id,code,name,description,is_private,created_at")
+        .single();
+
+      if (!error && data) {
+        remember(data.code);
+        await loadRooms(true);
+        await selectRoom(data);
+        toast("✅ Salon créé ! Code : " + data.code);
+        return true;
+      }
+
+      if (error?.code !== "23505") {
+        console.error("Création salon:", error);
+        return err("Impossible de créer le salon : " + (error?.message || "erreur inconnue")), false;
+      }
     }
-    err("Impossible de créer le salon, réessaie."); return false;
+
+    return err("Impossible de générer un code unique. Réessaie."), false;
   });
 }
+
 function openJoinRoom() {
-  ask("🔗 Rejoindre un salon", [{ k: "c", l: "Code", m: 6, p: "AB12CD" }], async (v, err) => {
-    const code = v.c.trim().toUpperCase();
+  ask("🔗 Rejoindre un salon", [
+    { k: "c", l: "Code du salon", m: 6, p: "AB12CD" }
+  ], async (v, err) => {
+    const code = String(v.c || "").trim().toUpperCase().replace(/\s/g, "");
     if (!code) return err("Entre un code."), false;
-    const { data, error } = await db.from("rooms").select("*").eq("code", code).maybeSingle();
-    if (error) return err(error.message), false;
-    if (!data) return err("Salon introuvable."), false;
+    if (!/^[A-Z0-9]{4,6}$/.test(code)) return err("Code de salon invalide."), false;
+
+    const { data, error } = await db.from("rooms")
+      .select("id,code,name,description,is_private,created_at")
+      .eq("code", code)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Recherche salon:", error);
+      return err("Impossible de rechercher le salon : " + error.message), false;
+    }
+    if (!data) return err("❌ Salon introuvable. Vérifie le code."), false;
+
     remember(code);
-    if (!S.rooms.some(r => r.code === code)) S.rooms.push(data);
-    selectRoom(data);
+    const index = S.rooms.findIndex(r => String(r.code).toUpperCase() === code);
+    if (index >= 0) S.rooms[index] = data;
+    else S.rooms.unshift(data);
+
+    renderRooms();
+    await selectRoom(data);
+    toast("✅ Salon rejoint !");
+    return true;
   });
 }
 
