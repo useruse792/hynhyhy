@@ -506,29 +506,65 @@ function openJoinRoom() {
 /* ---------- Messages publics ---------- */
 async function loadMessages() {
   const room = S.room;
-  if (!room) return;
-  const { data, error } = await db.from("messages").select("*").eq("room_code", room.code)
-    .order("created_at", { ascending: false }).limit(300);
-  if (error) return console.error(error);
-  if (S.room?.code !== room.code) return;
-  const list = data.reverse(), last = list[list.length - 1], myName = senderName()?.toLowerCase();
-  if (last && seen[room.code] != null && seen[room.code] !== last.id && last.username.toLowerCase() !== myName) beep();
-  if (last) seen[room.code] = last.id;
-  renderList($("msgBox"), list, "Aucun message dans ce salon.", (m, prev) => {
-    const w = el("div", "msg"), u = el("span", "user", m.username), b = el("div", "bubble");
-    u.style.color = hue(m.username);
-    richText(b, m.content);
+  const box = $("msgBox");
+  if (!room || !box) return;
+
+  const roomCode = String(room.code || "").trim().toUpperCase();
+  if (!roomCode) return;
+
+  const { data, error } = await db.from("messages")
+    .select("id,username,content,room_code,created_at")
+    .eq("room_code", roomCode)
+    .order("created_at", { ascending: true })
+    .limit(300);
+
+  if (error) {
+    console.error("Erreur chargement messages :", error);
+    box._sig = null;
+    box.innerHTML = "";
+    box.append(el("div", "empty", "❌ Impossible de charger les messages : " + error.message));
+    return;
+  }
+
+  if (String(S.room?.code || "").trim().toUpperCase() !== roomCode) return;
+
+  const list = Array.isArray(data) ? data : [];
+  const last = list[list.length - 1];
+  const myName = String(senderName() || "").toLowerCase();
+
+  if (last && seen[roomCode] != null && seen[roomCode] !== last.id && String(last.username || "").toLowerCase() !== myName) {
+    beep();
+  }
+  if (last) seen[roomCode] = last.id;
+
+  renderList(box, list, "Aucun message dans ce salon.", (m, prev) => {
+    const w = el("div", "msg");
+    const username = String(m.username || "Utilisateur");
+    const u = el("span", "user", username);
+    const b = el("div", "bubble");
+
+    u.style.color = hue(username);
+    richText(b, String(m.content || ""));
     w.append(u, el("span", "date", fmt(m.created_at)));
-    if (m.id != null && S.me && room.code !== "ANON" && m.username.toLowerCase() === myName) {
-      const a = el("span", "acts"), e = el("button", "", "✏️"), d = el("button", "", "🗑️");
-      e.type = d.type = "button"; e.title = "Modifier"; d.title = "Supprimer";
-      e.onclick = () => editMsg(m); d.onclick = () => delMsg(m);
-      a.append(e, d); w.append(a);
+
+    if (m.id != null && S.me && roomCode !== "ANON" && username.toLowerCase() === myName) {
+      const a = el("span", "acts");
+      const e = el("button", "", "✏️");
+      const d = el("button", "", "🗑️");
+      e.type = d.type = "button";
+      e.title = "Modifier";
+      d.title = "Supprimer";
+      e.onclick = () => editMsg(m);
+      d.onclick = () => delMsg(m);
+      a.append(e, d);
+      w.append(a);
     }
+
     w.append(b);
     return withDay(m, prev, w);
   });
 }
+
 let sending = false;
 $("msgForm").onsubmit = async e => {
   e.preventDefault();
@@ -538,7 +574,8 @@ $("msgForm").onsubmit = async e => {
   const content = applyCommands($("msgInput").value.trim());
   if (!content) return;
   sending = true; lastSend = Date.now();
-  const { error } = await db.from("messages").insert({ username: who, content: S.room.code === "ANON" ? content.slice(0, 300) : content, room_code: S.room.code });
+  const roomCode = String(S.room.code || "").trim().toUpperCase();
+  const { error } = await db.from("messages").insert({ username: who, content: roomCode === "ANON" ? content.slice(0, 300) : content, room_code: roomCode });
   sending = false;
   if (error) { console.error(error); return toast("Erreur : " + error.message); }
   $("msgInput").value = ""; $("msgInput").focus();
