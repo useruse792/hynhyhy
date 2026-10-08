@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -81,6 +82,25 @@ input:focus{border-color:#5865f2}
 .badge{margin-left:auto;background:#e74c3c;min-width:19px;height:19px;border-radius:10px;padding:0 5px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
 .star{float:right;background:none;border:none;color:#7e8798;font-size:16px;padding:0}.star.on{color:#f1c40f}
 #emojis{display:flex;flex-wrap:wrap;gap:4px;padding:8px 12px 0;background:#141720}#emojis[hidden]{display:none}#emojis button{background:#20242e;border:none;border-radius:6px;font-size:18px;padding:4px 7px}
+
+/* ---------- ADMIN ---------- */
+.admin-btn{display:none!important;background:#8e44ad!important}
+.admin-btn.show{display:block!important}
+.admin-badge{display:inline-flex;align-items:center;gap:4px;background:#8e44ad;color:#fff;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;margin-left:6px}
+#adminPanel{padding:20px;overflow:auto;display:none}
+#adminPanel.on{display:block}
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}
+.admin-card{background:#171a22;border:1px solid #292e3a;border-radius:12px;padding:16px}
+.admin-card b{font-size:25px;display:block;margin-top:4px}
+.admin-table{width:100%;border-collapse:collapse;margin-top:12px;background:#171a22;border-radius:10px;overflow:hidden}
+.admin-table th,.admin-table td{padding:10px;text-align:left;border-bottom:1px solid #292e3a;font-size:13px}
+.admin-table th{color:#9aa4b5;font-size:11px;text-transform:uppercase}
+.admin-danger{background:#c0392b!important}
+.admin-purple{background:#8e44ad!important}
+.admin-small{font-size:11px;color:#8992a3}
+.admin-actions{display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:700px){#adminPanel{padding:14px}.admin-table{font-size:12px}.admin-table th,.admin-table td{padding:7px}}
+
 </style>
 </head>
 <body>
@@ -109,7 +129,7 @@ input:focus{border-color:#5865f2}
   <div class="list" id="pmList"></div>
  </div>
  <div class="side-sec"><button class="btn orange" onclick="openBattle()">🚢 Bataille navale</button>
-  <button class="btn sec" style="width:100%;margin-top:8px" onclick="openAnon()">👻 Chat anonyme</button></div>
+  <button class="btn sec" style="width:100%;margin-top:8px" onclick="openAnon()">👻 Chat anonyme</button><button class="btn admin-btn" id="adminSideBtn" style="width:100%;margin-top:8px" onclick="openAdmin()">👑 Panneau Admin</button></div>
  <div class="rooms" id="roomList"></div>
 </aside>
 
@@ -225,7 +245,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal()
 /* ---------- Navigation ---------- */
 function show(v) {
   S.view = v;
-  ["public", "private", "game"].forEach(x => $("v-" + x).classList.toggle("on", x === v));
+  ["public", "private", "game", "admin"].forEach(x => { const e = $("v-" + x); if (e) e.classList.toggle("on", x === v); });
   $("side").classList.remove("open");
   renderRooms(); renderConvs();
 }
@@ -234,7 +254,7 @@ function show(v) {
 function setMe(a) {
   S.me = a;
   a ? localStorage.setItem("minichat_account", JSON.stringify(a)) : localStorage.removeItem("minichat_account");
-  renderAccount(); loadConvs();
+  renderAccount(); renderAdminAccess(); loadConvs();
 }
 function renderAccount() {
   const m = S.me;
@@ -802,10 +822,195 @@ function changeAnon(cb) {
   });
 }
 
+/* ---------- Administration ---------- */
+/*
+ * Compte administrateur principal : shu
+ * IMPORTANT : cette vérification protège l'interface.
+ * Pour une vraie sécurité serveur, les policies/RPC Supabase doivent
+ * également contrôler les opérations d'administration.
+ */
+const ADMIN_USERNAME = "shu";
+
+function isAdmin(){
+  return !!S.me && String(S.me.username || "").toLowerCase() === ADMIN_USERNAME;
+}
+
+function renderAdminAccess(){
+  const b = $("adminSideBtn");
+  if (b) b.classList.toggle("show", isAdmin());
+}
+
+async function openAdmin(){
+  if (!isAdmin()) return toast("Accès administrateur refusé.");
+  show("admin");
+  $("adminPanel").classList.add("on");
+  await loadAdmin();
+}
+
+async function loadAdmin(){
+  if (!isAdmin()) return toast("Accès administrateur refusé.");
+
+  $("adminStatus").textContent = "Chargement du panneau admin...";
+
+  const [roomsR, msgR, gamesR] = await Promise.all([
+    db.from("rooms").select("*").order("created_at", {ascending:false}),
+    db.from("messages").select("id,username,content,room_code,created_at").order("created_at", {ascending:false}).limit(50),
+    db.from("battleship_games").select("id,code,status,player1_name,player2_name,winner_id").order("id", {ascending:false}).limit(50)
+  ]);
+
+  if (roomsR.error) console.error("Admin rooms:", roomsR.error);
+  if (msgR.error) console.error("Admin messages:", msgR.error);
+  if (gamesR.error) console.error("Admin games:", gamesR.error);
+
+  const rooms = roomsR.data || [];
+  const messages = msgR.data || [];
+  const games = gamesR.data || [];
+
+  $("admRooms").textContent = rooms.length;
+  $("admMessages").textContent = messages.length + (msgR.error ? " ⚠️" : "");
+  $("admGames").textContent = games.length;
+
+  // Le projet actuel n'expose pas de table utilisateurs dans ce fichier.
+  // On compte les pseudos distincts visibles dans les messages.
+  const users = new Set(messages.map(x => x.username).filter(Boolean));
+  $("admUsers").textContent = users.size + (msgR.error ? " ⚠️" : "");
+
+  $("adminStatus").textContent =
+    msgR.error
+      ? "⚠️ Les données sont partiellement bloquées par les policies RLS. Les fonctions autorisées restent utilisables."
+      : "✅ Panneau administrateur chargé.";
+
+  renderAdminRooms(rooms);
+  renderAdminMessages(messages);
+}
+
+function renderAdminRooms(rooms){
+  const box = $("adminRooms");
+  box.innerHTML = "";
+  if (!rooms.length) return box.append(el("div","empty","Aucun salon."));
+
+  const table = document.createElement("table");
+  table.className = "admin-table";
+  table.innerHTML = "<thead><tr><th>Salon</th><th>Code</th><th>Type</th><th>Actions</th></tr></thead>";
+  const tb = document.createElement("tbody");
+
+  rooms.forEach(r=>{
+    const tr=document.createElement("tr");
+    const tdName=el("td","", (r.is_private ? "🔒 " : "🌐 ") + r.name);
+    const tdCode=el("td","",r.code);
+    const tdType=el("td","",r.is_private ? "Privé" : "Public");
+    const tdAct=el("td","");
+    const actions=el("div","admin-actions");
+
+    const open=el("button","btn","Ouvrir");
+    open.type="button";
+    open.onclick=()=>selectRoom(r);
+
+    const del=el("button","btn admin-danger","Supprimer");
+    del.type="button";
+    del.onclick=()=>adminDeleteRoom(r);
+
+    actions.append(open,del);
+    tdAct.append(actions);
+    tr.append(tdName,tdCode,tdType,tdAct);
+    tb.append(tr);
+  });
+
+  table.append(tb);
+  box.append(table);
+}
+
+function renderAdminMessages(messages){
+  const box=$("adminMessagesList");
+  box.innerHTML="";
+  if(!messages.length) return box.append(el("div","empty","Aucun message visible."));
+
+  const table=document.createElement("table");
+  table.className="admin-table";
+  table.innerHTML="<thead><tr><th>Auteur</th><th>Salon</th><th>Message</th><th>Date</th><th>Action</th></tr></thead>";
+  const tb=document.createElement("tbody");
+
+  messages.forEach(m=>{
+    const tr=document.createElement("tr");
+    tr.append(
+      el("td","",m.username || "?"),
+      el("td","",m.room_code || "?"),
+      el("td","",m.content || ""),
+      el("td","",fmt(m.created_at))
+    );
+    const td=el("td","");
+    const b=el("button","btn admin-danger","🗑️");
+    b.type="button";
+    b.title="Supprimer ce message";
+    b.onclick=()=>adminDeleteMessage(m);
+    td.append(b);
+    tr.append(td);
+    tb.append(tr);
+  });
+
+  table.append(tb);
+  box.append(table);
+}
+
+async function adminDeleteMessage(m){
+  if(!isAdmin()) return;
+  if(!confirm("Supprimer définitivement ce message ?")) return;
+
+  const {data,error}=await db.from("messages").delete().eq("id",m.id).select();
+  if(error) return toast("Suppression refusée : " + error.message);
+  if(!data?.length) return toast("Suppression refusée par les permissions Supabase.");
+
+  toast("Message supprimé.");
+  $("msgBox")._sig=null;
+  await loadAdmin();
+  if(S.room?.code===m.room_code) await loadMessages();
+}
+
+async function adminDeleteRoom(r){
+  if(!isAdmin()) return;
+  if(r.code==="ANON") return toast("Le chat anonyme ne peut pas être supprimé ici.");
+  if(!confirm(`Supprimer le salon "${r.name}" ?`)) return;
+
+  const {data,error}=await db.from("rooms").delete().eq("code",r.code).select();
+  if(error) return toast("Suppression refusée : " + error.message);
+  if(!data?.length) return toast("Suppression refusée par les permissions Supabase.");
+
+  if(S.room?.code===r.code){
+    S.room=null;
+    $("roomName").textContent="Aucun salon sélectionné";
+    $("roomCode").textContent="";
+    $("msgBox").innerHTML='<div class="empty">Salon supprimé.</div>';
+  }
+
+  toast("Salon supprimé.");
+  await loadRooms();
+  await loadAdmin();
+}
+
+async function adminAnnounce(){
+  if(!isAdmin()) return;
+  if(!S.room || S.room.code==="ANON") return toast("Sélectionne d'abord un salon normal.");
+  const input=$("adminAnnouncement");
+  const content=input.value.trim();
+  if(!content) return toast("Écris une annonce.");
+
+  const {error}=await db.from("messages").insert({
+    username:"👑 ADMIN",
+    content:"📢 ANNONCE ADMIN : " + content,
+    room_code:S.room.code
+  });
+
+  if(error) return toast("Annonce refusée : " + error.message);
+  input.value="";
+  toast("Annonce envoyée !");
+  await loadMessages();
+}
+
+
 /* ---------- Démarrage ---------- */
 S.me = ls("minichat_account", null);
 if (!S.me?.username || S.me.id == null) S.me = null;
-renderAccount(); show("public"); loadRooms(); loadConvs();
+renderAccount(); renderAdminAccess(); show("public"); loadRooms(); loadConvs();
 </script>
 </body>
 </html>
